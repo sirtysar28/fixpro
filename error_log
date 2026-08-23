@@ -1,0 +1,19 @@
+[17-May-2026 15:31:31 UTC] PHP Fatal error:  Uncaught RuntimeException: Composer detected issues in your platform: Your Composer dependencies require a PHP version ">= 8.4.0". You are running 8.2.30. in /home/u1526346/public_html/demo/fixpro.bangunberkahabadi.com/vendor/composer/platform_check.php:22
+Stack trace:
+#0 /home/u1526346/public_html/demo/fixpro.bangunberkahabadi.com/vendor/composer/autoload_real.php(25): require()
+#1 /home/u1526346/public_html/demo/fixpro.bangunberkahabadi.com/vendor/autoload.php(22): ComposerAutoloaderInit36793882908b6cbdd344b5a4840231db::getLoader()
+#2 /home/u1526346/public_html/demo/fixpro.bangunberkahabadi.com/artisan(10): require('/home/u1526346/...')
+#3 {main}
+  thrown in /home/u1526346/public_html/demo/fixpro.bangunberkahabadi.com/vendor/composer/platform_check.php on line 22
+[17-May-2026 15:31:35 UTC] PHP Fatal error:  Uncaught RuntimeException: Composer detected issues in your platform: Your Composer dependencies require a PHP version ">= 8.4.0". You are running 8.2.30. in /home/u1526346/public_html/demo/fixpro.bangunberkahabadi.com/vendor/composer/platform_check.php:22
+Stack trace:
+#0 /home/u1526346/public_html/demo/fixpro.bangunberkahabadi.com/vendor/composer/autoload_real.php(25): require()
+#1 /home/u1526346/public_html/demo/fixpro.bangunberkahabadi.com/vendor/autoload.php(22): ComposerAutoloaderInit36793882908b6cbdd344b5a4840231db::getLoader()
+#2 /home/u1526346/public_html/demo/fixpro.bangunberkahabadi.com/artisan(10): require('/home/u1526346/...')
+#3 {main}
+  thrown in /home/u1526346/public_html/demo/fixpro.bangunberkahabadi.com/vendor/composer/platform_check.php on line 22
+[17-May-2026 15:44:40 UTC] PHP Warning:  require(/home/u1526346/public_html/demo/fixpro.bangunberkahabadi.com/vendor/autoload.php): Failed to open stream: No such file or directory in /home/u1526346/public_html/demo/fixpro.bangunberkahabadi.com/artisan on line 10
+[17-May-2026 15:44:40 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/u1526346/public_html/demo/fixpro.bangunberkahabadi.com/vendor/autoload.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/u1526346/public_html/demo/fixpro.bangunberkahabadi.com/artisan:10
+Stack trace:
+#0 {main}
+  thrown in /home/u1526346/public_html/demo/fixpro.bangunberkahabadi.com/artisan on line 10

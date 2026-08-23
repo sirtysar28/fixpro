@@ -1,0 +1,20 @@
+[26-May-2026 07:46:36 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function shell_exec() in /home/fixproid/public_html/public/clear-cache.php:62
+Stack trace:
+#0 {main}
+  thrown in /home/fixproid/public_html/public/clear-cache.php on line 62
+[26-May-2026 07:46:46 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function shell_exec() in /home/fixproid/public_html/public/clear-cache.php:62
+Stack trace:
+#0 {main}
+  thrown in /home/fixproid/public_html/public/clear-cache.php on line 62
+[26-May-2026 07:46:49 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function shell_exec() in /home/fixproid/public_html/public/clear-cache.php:62
+Stack trace:
+#0 {main}
+  thrown in /home/fixproid/public_html/public/clear-cache.php on line 62
+[26-May-2026 07:49:43 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function shell_exec() in /home/fixproid/public_html/public/clear-cache.php:62
+Stack trace:
+#0 {main}
+  thrown in /home/fixproid/public_html/public/clear-cache.php on line 62
+[26-May-2026 07:49:45 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function shell_exec() in /home/fixproid/public_html/public/clear-cache.php:62
+Stack trace:
+#0 {main}
+  thrown in /home/fixproid/public_html/public/clear-cache.php on line 62

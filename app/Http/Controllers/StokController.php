@@ -8,6 +8,7 @@ use App\Services\SparepartMovementService;
 use App\Services\XlsxWriter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class StokController extends Controller
 {
@@ -80,24 +81,66 @@ class StokController extends Controller
             return view('stok.pilih-cabang', ['redirectTo' => $request->fullUrl()]);
         }
 
-        // Stok SELALU milik cabang aktif saja (tidak campur toko lain)
-        $query = Stok::where('cabang_id', $cabangId);
+        // ===== Filter cabang/gudang (hanya utk user yang punya beberapa cabang boleh) =====
+        $allowedCabangs = collect();
+        if ($user->isSuperAdmin() || ($user->isEnterprise() && $user->isAdmin())) {
+            $ids = $user->isSuperAdmin() ? null : $user->getAllowedCabangIds();
+            $allowedCabangs = $ids
+                ? \App\Models\Cabang::whereIn('id', $ids)->orderBy('nama')->get()
+                : \App\Models\Cabang::orderBy('nama')->get();
+        }
+        $filterCabang = $cabangId;
+        if ($request->filled('cabang') && $allowedCabangs->pluck('id')->contains((int) $request->cabang)) {
+            $filterCabang = (int) $request->cabang;
+        }
 
+        // Stok SELALU milik cabang aktif / terpilih saja (tidak campur toko lain)
+        $query = Stok::where('cabang_id', $filterCabang);
+
+        // ===== Filter kata pencarian =====
         if ($request->filled('search')) {
             $s = $request->search;
             $query->where(function ($q) use ($s) {
-                $q->where('nama', 'like', "%$s%")->orWhere('kode', 'like', "%$s%")->orWhere('barcode', 'like', "%$s%");
+                $q->where('nama', 'like', "%$s%")->orWhere('kode', 'like', "%$s%")->orWhere('barcode', 'like', "%$s%")
+                  ->orWhere('merk_hp', 'like', "%$s%")->orWhere('kategori', 'like', "%$s%");
             });
         }
-        $stoks = $query->orderBy('nama')->paginate(20);
+        // ===== Filter kategori & merek =====
+        if ($request->filled('kategori')) {
+            $query->where('kategori', $request->kategori);
+        }
+        if ($request->filled('merk')) {
+            $query->where('merk_hp', $request->merk);
+        }
 
-        // Stats juga harus per cabang
-        $statsQuery = Stok::where('cabang_id', $cabangId);
-        $totalJenis = $statsQuery->count();
+        // ===== Sorting (default nama asc) =====
+        $sort = $request->input('sort', 'nama');
+        $dir = strtolower($request->input('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+        $sortable = ['nama', 'kode', 'kategori', 'merk_hp', 'stok', 'modal', 'jual'];
+        if (!in_array($sort, $sortable)) $sort = 'nama';
+        $query->orderBy($sort, $dir)->orderBy('nama', 'asc');
+
+        // ===== Jumlah data per halaman =====
+        $perPage = (int) $request->input('per_page', 20);
+        if (!in_array($perPage, [10, 20, 50, 100])) $perPage = 20;
+
+        $stoks = $query->paginate($perPage)->appends($request->query());
+
+        // SIMPAN kondisi halaman terakhir (nomor halaman + filter + sort + per halaman)
+        // supaya setelah Edit Barang → Simpan, user kembali ke kondisi yang sama.
+        session(['stok.index_url' => $request->fullUrl()]);
+
+        // Stats juga harus per cabang (ikut filter cabang terpilih)
+        $statsQuery = Stok::where('cabang_id', $filterCabang);
+        $totalJenis = (clone $statsQuery)->count();
         $stokLow = (clone $statsQuery)->where('stok', '>', 0)->where('stok', '<=', \DB::raw('min_alert'))->count();
         $stokHabis = (clone $statsQuery)->where('stok', 0)->count();
 
-        return view('stok.index', compact('stoks', 'totalJenis', 'stokLow', 'stokHabis'));
+        // Opsi dropdown filter
+        $kategoriList = Stok::where('cabang_id', $filterCabang)->distinct()->orderBy('kategori')->pluck('kategori');
+        $merkList = Stok::where('cabang_id', $filterCabang)->whereNotNull('merk_hp')->where('merk_hp', '!=', '')->distinct()->orderBy('merk_hp')->pluck('merk_hp');
+
+        return view('stok.index', compact('stoks', 'totalJenis', 'stokLow', 'stokHabis', 'allowedCabangs', 'filterCabang', 'kategoriList', 'merkList', 'sort', 'dir', 'perPage'));
     }
 
     public function create(Request $request)
@@ -108,14 +151,82 @@ class StokController extends Controller
         return view('stok.create');
     }
 
+    /**
+     * Normalisasi input angka dari form (stok, harga, min_alert).
+     * Browser/JS lama bisa mengirim angka berformat titik ribuan ("1.500.000")
+     * atau koma ("1500000,") yang membuat validasi gagal / nilai tersimpan salah.
+     * Di sini kita bersihkan jadi digit murni SEBELUM validasi.
+     */
+    private function normalizeNumericInputs(Request $request): void
+    {
+        foreach (['stok', 'modal', 'jual', 'min_alert'] as $field) {
+            if (!$request->has($field)) continue;
+            $raw = trim((string) $request->input($field));
+            if ($raw === '') continue; // biarkan aturan nullable/default
+            // "1.500.000" / "1,500,000" / " 150000 " → "1500000"
+            $clean = preg_replace('/[^\d]/', '', $raw);
+            $request->merge([$field => $clean === '' ? '0' : $clean]);
+        }
+    }
+
+    /**
+     * Parse angka dari sel Excel/CSV yang bisa berformat Indonesia maupun Inggris.
+     * "115.000" → 115000 (titik ribuan ID) | "115,000" → 115000 | "115.000,50" → 115000.5
+     * "115,000.50" → 115000.5 | "115000" → 115000 | "0,5" → 0.5 | "115.5" → 115.5
+     * FIX: sebelumnya (float)"115.000" = 115 → harga 115.000 tersimpan jadi 115.
+     */
+    private function parseNumberId($value): float
+    {
+        if (is_int($value) || is_float($value)) return (float) $value;
+        $s = trim((string) ($value ?? ''));
+        if ($s === '') return 0.0;
+        // Buang "Rp", spasi biasa & spasi tak putus (nbsp)
+        $s = str_replace(["\xC2\xA0", ' ', 'Rp', 'rp', 'RP'], '', $s);
+
+        $hasDot = str_contains($s, '.');
+        $hasComma = str_contains($s, ',');
+
+        if ($hasDot && $hasComma) {
+            // Separator terakhir = desimal (ID: 1.150.000,50 | EN: 1,150,000.50)
+            if (strrpos($s, ',') > strrpos($s, '.')) {
+                $s = str_replace('.', '', $s);  // titik = ribuan
+                $s = str_replace(',', '.', $s); // koma = desimal
+            } else {
+                $s = str_replace(',', '', $s);  // koma = ribuan
+            }
+        } elseif ($hasDot) {
+            // Titik saja: pola ribuan ID (115.000 / 1.150.000) → ribuan; selain itu desimal (115.5)
+            if (preg_match('/^-?\d{1,3}(\.\d{3})+$/', $s)) {
+                $s = str_replace('.', '', $s);
+            }
+        } elseif ($hasComma) {
+            // Koma saja: pola ribuan (115,000) → ribuan; selain itu desimal (0,5)
+            if (preg_match('/^-?\d{1,3}(,\d{3})+$/', $s)) {
+                $s = str_replace(',', '', $s);
+            } else {
+                $s = str_replace(',', '.', $s);
+            }
+        }
+        return (float) $s;
+    }
+
     public function store(Request $request)
     {
         // Wajib pilih toko dulu supaya barang baru tidak nyasar ke toko lain
         if ($gate = $this->requireCabangForStok($request)) return $gate;
 
+        $this->normalizeNumericInputs($request);
+
         $cabangId = auth()->user()->getEffectiveCabangId();
+        $namaBarang = trim((string) $request->input('nama'));
         $validated = $request->validate([
-            'kode' => 'required|unique:stoks,kode,NULL,id,cabang_id,' . $cabangId,
+            // Kode boleh sama untuk barang berbeda — kombinasi Kode+Nama yang harus unik per cabang
+            'kode' => [
+                'required',
+                Rule::unique('stoks', 'kode')->where(fn ($q) => $q
+                    ->where('cabang_id', $cabangId)
+                    ->whereRaw('LOWER(TRIM(nama)) = ?', [mb_strtolower($namaBarang)])),
+            ],
             'barcode' => 'nullable|string|unique:stoks,barcode,NULL,id,cabang_id,' . $cabangId,
             'nama' => 'required',
             'kategori' => 'required',
@@ -130,27 +241,43 @@ class StokController extends Controller
         // - Enterprise pusat → cabang yang sedang aktif di-switch
         $user = auth()->user();
         $validated['cabang_id'] = $user->isAdminCabangAnak()
-            ? (int) $user->cabang_id
+            ? ((int) $user->cabang_id ?: $user->getEffectiveCabangId())
             : $user->getActiveCabangId();
-        // Auto-generate barcode if empty
-        if (empty($validated['barcode'])) {
-            $s = Stok::create($validated);
-            $s->barcode = 'FXP' . str_pad($s->id, 7, '0', STR_PAD_LEFT);
-            $s->save();
-        } else {
-            $s = Stok::create($validated);
+        // Safety net: jangan pernah simpan cabang_id 0 (tidak kelihatan di daftar stok toko mana pun)
+        if (empty($validated['cabang_id'])) {
+            $validated['cabang_id'] = $user->getEffectiveCabangId();
         }
-        // Catat stok awal ke kartu stok
-        if ((int) ($validated['stok'] ?? 0) > 0) {
-            SparepartMovementService::record($s, 'masuk', 'stok_awal', (int) $validated['stok'], [
-                'referensi'      => 'STOK-AWAL-' . $s->kode,
-                'harga_satuan'   => (float) ($validated['modal'] ?? 0),
-                'cabang_id'      => $validated['cabang_id'],
-                'catatan'        => 'Input barang baru',
-            ]);
+
+        DB::beginTransaction();
+        try {
+            // Auto-generate barcode if empty
+            if (empty($validated['barcode'])) {
+                unset($validated['barcode']);
+                $s = Stok::create($validated);
+                $s->barcode = 'FXP' . str_pad($s->id, 7, '0', STR_PAD_LEFT);
+                $s->save();
+            } else {
+                $s = Stok::create($validated);
+            }
+            // Catat stok awal ke kartu stok
+            if ((int) ($validated['stok'] ?? 0) > 0) {
+                SparepartMovementService::record($s, 'masuk', 'stok_awal', (int) $validated['stok'], [
+                    'referensi'      => 'STOK-AWAL-' . $s->kode,
+                    'harga_satuan'   => (float) ($validated['modal'] ?? 0),
+                    'cabang_id'      => $validated['cabang_id'],
+                    'catatan'        => 'Input barang baru',
+                ]);
+            }
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            report($e);
+            return back()->withInput()->with('error', 'Gagal menyimpan barang: ' . $e->getMessage());
         }
+
         AuditLogService::created('stok', "Menambahkan stok: {$validated['nama']} ({$validated['kode']})", $s);
-        return redirect()->route('stok.index')->with('success', 'Barang berhasil ditambahkan!');
+        // Kembali ke kondisi daftar stok terakhir (halaman + filter tetap)
+        return redirect()->to(session()->pull('stok.index_url', route('stok.index')))->with('success', 'Barang berhasil ditambahkan!');
     }
 
     public function edit(Stok $stok)
@@ -163,8 +290,17 @@ class StokController extends Controller
     {
         $this->checkCabangAccess($stok);
 
+        $this->normalizeNumericInputs($request);
+
+        $namaBarang = trim((string) $request->input('nama'));
         $validated = $request->validate([
-            'kode' => 'required|unique:stoks,kode,' . $stok->id . ',id,cabang_id,' . $stok->cabang_id,
+            // Kode boleh sama untuk barang berbeda — kombinasi Kode+Nama yang harus unik per cabang
+            'kode' => [
+                'required',
+                Rule::unique('stoks', 'kode')->ignore($stok->id)->where(fn ($q) => $q
+                    ->where('cabang_id', $stok->cabang_id)
+                    ->whereRaw('LOWER(TRIM(nama)) = ?', [mb_strtolower($namaBarang)])),
+            ],
             'barcode' => 'nullable|string|unique:stoks,barcode,' . $stok->id . ',id,cabang_id,' . $stok->cabang_id,
             'nama' => 'required',
             'kategori' => 'required',
@@ -175,29 +311,40 @@ class StokController extends Controller
             'min_alert' => 'integer|min:0',
         ]);
         $oldStok = (int) $stok->stok;
-        $stok->update($validated);
 
-        // Catat perubahan stok manual ke kartu stok
-        if (isset($validated['stok'])) {
-            $newStok = (int) $validated['stok'];
-            $diff = $newStok - $oldStok;
-            if ($diff > 0) {
-                SparepartMovementService::record($stok, 'masuk', 'edit_stok', $diff, [
-                    'referensi' => 'EDIT-' . $stok->kode,
-                    'catatan'   => "Edit stok: {$oldStok} → {$newStok}",
-                    'cabang_id' => $stok->cabang_id,
-                ]);
-            } elseif ($diff < 0) {
-                SparepartMovementService::record($stok, 'keluar', 'edit_stok', abs($diff), [
-                    'referensi' => 'EDIT-' . $stok->kode,
-                    'catatan'   => "Edit stok: {$oldStok} → {$newStok}",
-                    'cabang_id' => $stok->cabang_id,
-                ]);
+        DB::beginTransaction();
+        try {
+            $stok->update($validated);
+
+            // Catat perubahan stok manual ke kartu stok
+            if (isset($validated['stok'])) {
+                $newStok = (int) $validated['stok'];
+                $diff = $newStok - $oldStok;
+                if ($diff > 0) {
+                    SparepartMovementService::record($stok, 'masuk', 'edit_stok', $diff, [
+                        'referensi' => 'EDIT-' . $stok->kode,
+                        'catatan'   => "Edit stok: {$oldStok} → {$newStok}",
+                        'cabang_id' => $stok->cabang_id,
+                    ]);
+                } elseif ($diff < 0) {
+                    SparepartMovementService::record($stok, 'keluar', 'edit_stok', abs($diff), [
+                        'referensi' => 'EDIT-' . $stok->kode,
+                        'catatan'   => "Edit stok: {$oldStok} → {$newStok}",
+                        'cabang_id' => $stok->cabang_id,
+                    ]);
+                }
             }
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            report($e);
+            return back()->withInput()->with('error', 'Gagal mengupdate barang: ' . $e->getMessage());
         }
 
         AuditLogService::updated('stok', "Mengupdate stok: {$stok->nama}", $stok);
-        return redirect()->route('stok.index')->with('success', 'Barang berhasil diupdate!');
+        // REVISI #7 & #8: kembali ke halaman & kondisi daftar stok TERAKHIR
+        // (Stok → Halaman 2 → Edit → Simpan → tetap Halaman 2 + filter sama)
+        return redirect()->to(session()->pull('stok.index_url', route('stok.index')))->with('success', 'Barang berhasil diupdate!');
     }
 
     public function destroy(Stok $stok)
@@ -205,7 +352,7 @@ class StokController extends Controller
         $this->checkCabangAccess($stok);
         AuditLogService::deleted('stok', "Menghapus stok: {$stok->nama}", $stok);
         $stok->delete();
-        return redirect()->route('stok.index')->with('success', 'Barang berhasil dihapus!');
+        return redirect()->to(session()->pull('stok.index_url', route('stok.index')))->with('success', 'Barang berhasil dihapus!');
     }
 
     /**
@@ -330,6 +477,7 @@ class StokController extends Controller
 
         $cabangId = auth()->user()->getActiveCabangId();
         $inserted = 0; $updated = 0; $errors = [];
+        $seen = []; // deteksi duplikat kode+nama di dalam file yang sama
 
         DB::beginTransaction();
         try {
@@ -337,16 +485,32 @@ class StokController extends Controller
                 $r = $rows[$i];
                 $nama = trim($r[$colNama] ?? '');
                 $kode = trim($r[$colKode] ?? '');
-                if ($nama === '' || $kode === '') continue; // skip baris kosong
+                if ($nama === '' && $kode === '') continue; // skip baris kosong
+                if ($nama === '' || $kode === '') {
+                    $errors[] = "Baris " . ($i + 1) . ": Nama dan Kode wajib diisi.";
+                    continue;
+                }
 
-                $stok    = $colStok !== false ? (int) round((float)($r[$colStok] ?? 0)) : null;
-                $modal   = $colModal !== false ? (float) ($r[$colModal] ?? 0) : null;
-                $jual    = $colJual !== false ? (float) ($r[$colJual] ?? 0) : null;
+                $stok    = $colStok !== false ? (int) round($this->parseNumberId($r[$colStok] ?? 0)) : null;
+                $modal   = $colModal !== false ? $this->parseNumberId($r[$colModal] ?? 0) : null;
+                $jual    = $colJual !== false ? $this->parseNumberId($r[$colJual] ?? 0) : null;
                 $kategori= $colKategori !== false ? trim($r[$colKategori] ?? '') : null;
-                $min     = $colMin !== false ? (int) round((float)($r[$colMin] ?? 0)) : null;
+                $min     = $colMin !== false ? (int) round($this->parseNumberId($r[$colMin] ?? 0)) : null;
 
+                // Duplikat persis (kode+nama sama) di dalam satu file → cukup sekali
+                $key = mb_strtolower($kode) . '||' . mb_strtolower($nama);
+                if (isset($seen[$key])) {
+                    $errors[] = "Baris " . ($i + 1) . ": {$kode} - {$nama} duplikat (sudah ada di baris {$seen[$key]}).";
+                    continue;
+                }
+                $seen[$key] = $i + 1;
+
+                // Cocokkan berdasarkan KODE + NAMA (per cabang).
+                // Kode boleh sama untuk barang berbeda (mis. kode tipe LCD "OG" untuk
+                // banyak model HP) — yang membedakan barang adalah kombinasi kode+nama.
                 $existing = Stok::where('kode', $kode)
                     ->where('cabang_id', $cabangId)
+                    ->whereRaw('LOWER(TRIM(nama)) = ?', [mb_strtolower($nama)])
                     ->first();
 
                 if ($existing) {
@@ -380,11 +544,6 @@ class StokController extends Controller
                         }
                     }
                 } else {
-                    // validasi unik kode per cabang
-                    if (Stok::where('kode', $kode)->where('cabang_id', $cabangId)->exists()) {
-                        $errors[] = "Baris {$i}: kode {$kode} duplikat.";
-                        continue;
-                    }
                     $newStokModel = Stok::create([
                         'nama'       => $nama,
                         'kode'       => $kode,
@@ -415,7 +574,10 @@ class StokController extends Controller
 
         AuditLogService::log('stok', 'import', "Import stok: {$inserted} baru, {$updated} update");
         $msg = "Import selesai: {$inserted} barang baru, {$updated} diperbarui.";
-        if ($errors) $msg .= ' ' . count($errors) . ' baris dilewati.';
+        if ($errors) {
+            $msg .= ' ' . count($errors) . ' baris dilewati: ' . implode(' ', array_slice($errors, 0, 5));
+            if (count($errors) > 5) $msg .= ' …';
+        }
         return back()->with('success', $msg);
     }
 
@@ -467,8 +629,10 @@ class StokController extends Controller
             // 1. Baca shared strings (jika ada)
             $shared = [];
             $ssXml = $zip->getFromName('xl/sharedStrings.xml');
-            if ($ssXml !== false && preg_match_all('/<si\b[^>]*>(.*?)<\/si>/s', $ssXml, $siMatches)) {
+            if ($ssXml !== false && preg_match_all('/<si\b[^>]*\/>|<si\b[^>]*>(.*?)<\/si>/s', $ssXml, $siMatches)) {
                 foreach ($siMatches[1] as $si) {
+                    // <si/> (string kosong) → '' agar index shared string tetap sejajar
+                    if ($si === null) { $shared[] = ''; continue; }
                     // gabungkan semua <t> di dalam <si> (rich text)
                     $txt = '';
                     if (preg_match_all('/<t[^>]*>(.*?)<\/t>/s', $si, $tMatches)) {
@@ -494,41 +658,79 @@ class StokController extends Controller
             if ($sheetXml === false) return [];
 
             // 3. Parse rows & cells
+            // Regex row mendukung <row/> self-closing dan <row>...</row>
+            if (!preg_match_all('/<row\b[^>]*\/>|<row\b[^>]*>(.*?)<\/row>/s', $sheetXml, $rowMatches)) return [];
             $rows = [];
-            if (!preg_match_all('/<row\b[^>]*>(.*?)<\/row>/s', $sheetXml, $rowMatches)) return [];
             foreach ($rowMatches[1] as $rowInner) {
-                $cells = [];
-                if (preg_match_all('/<c\b([^>]*)>(?:<(?:v|is)[^>]*>(.*?)<\/(?:v|is)>)?/s', $rowInner, $cellMatches, PREG_SET_ORDER)) {
+                // <row/> self-closing atau <row></row> → baris kosong (skip)
+                if ($rowInner === '' || $rowInner === null) continue;
+
+                $cells = []; // posisi kolom eksplisit (0-based) => nilai
+                if (preg_match_all('/<c\b([^>]*?)(?:\/>|>(.*?)<\/c>)/s', $rowInner, $cellMatches, PREG_SET_ORDER)) {
+                    $seq = -1; // fallback bila sel tanpa atribut r="A1"
                     foreach ($cellMatches as $cm) {
                         $attrs = $cm[1];
-                        $raw = $cm[2] ?? '';
+                        $inner = $cm[2] ?? '';
+
+                        // Posisi kolom dari atribut r (mis. "B3" → kolom B = index 1)
+                        // Penting: sel kosong di tengah baris tidak boleh menggeser kolom.
+                        if (preg_match('/\br="([A-Za-z]+)\d*"/', $attrs, $rm)) {
+                            $colIdx = $this->xlsxColToIndex($rm[1]);
+                        } else {
+                            $colIdx = ++$seq;
+                        }
+
                         $t = '';
                         if (preg_match('/\bt="([^"]+)"/', $attrs, $tm)) $t = $tm[1];
 
                         if ($t === 'inlineStr') {
-                            // nilai ada di <is><t>...</t></is> (diambil raw oleh regex di atas sebagai isi <is>)
+                            // nilai ada di <is><t>...</t></is>
                             $val = '';
-                            if (preg_match_all('/<t[^>]*>(.*?)<\/t>/s', $raw, $tParts)) {
+                            if (preg_match_all('/<t[^>]*>(.*?)<\/t>/s', $inner, $tParts)) {
                                 foreach ($tParts[1] as $tp) $val .= $tp;
                             }
-                            $cells[] = html_entity_decode($val, ENT_QUOTES, 'UTF-8');
+                            $cells[$colIdx] = html_entity_decode($val, ENT_QUOTES, 'UTF-8');
                         } elseif ($t === 's') {
-                            // shared string by index
-                            $idx = (int) $raw;
-                            $cells[] = $shared[$idx] ?? '';
+                            // shared string by index — ambil <v> (sel bisa berisi <f> dulu)
+                            $idx = null;
+                            if (preg_match('/<v[^>]*>(.*?)<\/v>/s', $inner, $vm)) $idx = (int) $vm[1];
+                            $cells[$colIdx] = $idx !== null ? ($shared[$idx] ?? '') : '';
+                        } elseif ($t === 'str' || $t === 'e') {
+                            // hasil formula string / error — ambil teks <v> apa adanya
+                            $val = '';
+                            if (preg_match('/<v[^>]*>(.*?)<\/v>/s', $inner, $vm)) $val = $vm[1];
+                            $cells[$colIdx] = html_entity_decode($val, ENT_QUOTES, 'UTF-8');
                         } else {
-                            // number (default) atau boolean
-                            $val = trim($raw);
-                            $cells[] = is_numeric($val) ? 0 + $val : $val;
+                            // number (default) / boolean — ambil <v> meski didahului <f>
+                            $val = '';
+                            if (preg_match('/<v[^>]*>(.*?)<\/v>/s', $inner, $vm)) $val = trim($vm[1]);
+                            $cells[$colIdx] = is_numeric($val) ? 0 + $val : $val;
                         }
                     }
                 }
-                if (!empty($cells)) $rows[] = $cells;
+
+                // Rapikan ke array berindeks 0..maxCol agar kolom tidak bergeser
+                $row = [];
+                $maxCol = $cells ? max(array_keys($cells)) : -1;
+                for ($j = 0; $j <= $maxCol; $j++) $row[$j] = $cells[$j] ?? '';
+                $rows[] = $row;
             }
             return $rows;
         } finally {
             $zip->close();
         }
+    }
+
+    /**
+     * Konversi huruf kolom Excel (A, B, … AA, AB, …) ke index 0-based.
+     */
+    private function xlsxColToIndex(string $letters): int
+    {
+        $idx = 0;
+        foreach (str_split(strtoupper($letters)) as $ch) {
+            $idx = $idx * 26 + (ord($ch) - 64); // A=1
+        }
+        return $idx - 1;
     }
 
     private function parseSpreadsheetXml(string $content): array

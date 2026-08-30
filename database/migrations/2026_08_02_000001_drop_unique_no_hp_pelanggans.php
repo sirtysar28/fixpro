@@ -11,12 +11,27 @@ return new class extends Migration
     {
         // Drop global unique index on no_hp in pelanggans table
         // Pelanggan dengan no_hp sama bisa ada di cabang berbeda
-        $indexRows = DB::select("SHOW INDEXES FROM pelanggans WHERE Column_name = 'no_hp' AND Non_unique = 0");
+        if (DB::getDriverName() === 'sqlite') {
+            // SQLite (testing): hanya index buatan CREATE INDEX (origin 'c') yang bisa di-drop;
+            // autoindex UNIQUE bawaan definisi kolom tidak bisa dihapus — biarkan saja di testing.
+            foreach (DB::select("PRAGMA index_list('pelanggans')") as $idx) {
+                if (($idx->unique ?? 0) == 1 && ($idx->origin ?? '') === 'c') {
+                    $cols = collect(DB::select("PRAGMA index_info('{$idx->name}')"))->pluck('name')->all();
+                    if ($cols === ['no_hp']) {
+                        Schema::table('pelanggans', function (Blueprint $table) use ($idx) {
+                            $table->dropUnique($idx->name);
+                        });
+                    }
+                }
+            }
+        } else {
+            $indexRows = DB::select("SHOW INDEXES FROM pelanggans WHERE Column_name = 'no_hp' AND Non_unique = 0");
 
-        foreach ($indexRows as $row) {
-            Schema::table('pelanggans', function (Blueprint $table) use ($row) {
-                $table->dropUnique($row->Key_name);
-            });
+            foreach ($indexRows as $row) {
+                Schema::table('pelanggans', function (Blueprint $table) use ($row) {
+                    $table->dropUnique($row->Key_name);
+                });
+            }
         }
 
         // Ensure cabang_id column exists and is nullable

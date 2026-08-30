@@ -8,8 +8,8 @@
 <!-- BRAND LEFT -->
 <div class="login-brand">
     <div class="login-logo-wrap"><img src="{{ asset('logo-fixpro.jpg') }}" alt="FixPro Logo"></div>
-    <h2>FixPro <span>Alpha2000</span></h2>
-    <p>Sistem manajemen servis profesional.<br>Daftar langsung, trial 1 bulan aktif.</p>
+    <h2>FixPro <span>AL2000</span></h2>
+    <p>Sistem manajemen servis profesional.<br>Daftar langsung, trial aktif.</p>
     <!-- <div class="db-status db-ok"><i class="fas fa-database"></i> DB OK</div> -->
 </div>
 
@@ -49,14 +49,6 @@
                     <button type="button" class="pass-toggle" onclick="togglePass('loginPass',this)"><i class="fas fa-eye"></i></button>
                 </div>
                 @error('password')<div class="field-err">{{ $message }}</div>@enderror
-            </div>
-
-            <!-- TAMBAHAN: REMEMBER ME / INGATKAN SAYA -->
-            <div class="fg" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
-                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 500; color: #475569; margin-bottom: 0;">
-                    <input type="checkbox" name="remember" id="remember" {{ old('remember') ? 'checked' : '' }} style="width: 16px; height: 16px; accent-color: var(--primary-color, #2563eb); cursor: pointer;">
-                    Ingatkan Saya
-                </label>
             </div>
 
             {{-- ===== KODE AKTIVASI (hanya untuk user yang masa aktifnya HABIS) ===== --}}
@@ -119,7 +111,7 @@
                 @error('name')<div class="field-err">{{ $message }}</div>@enderror
             </div>
             <div class="fg">
-                <label>Nama Toko *</label>
+                <label>Nama Toko / Bengkel *</label>
                 <input class="fci" type="text" name="nama_toko" value="{{ old('nama_toko') }}" placeholder="Contoh: iPhone Service Surabaya">
                 <div style="font-size:.68rem;color:#64748b;margin-top:3px">Kosongkan untuk otomatis menggunakan Nama Anda</div>
                 @error('nama_toko')<div class="field-err">{{ $message }}</div>@enderror

@@ -9,17 +9,26 @@ return new class extends Migration
 {
     public function up(): void
     {
+        $isSqlite = DB::getDriverName() === 'sqlite';
+
         // Drop unique lama (kode saja) dan ganti dengan composite unique (kode + cabang_id)
         // Cek apakah index stoks_kode_unique ada
-        $rows = DB::select("SHOW INDEX FROM stoks WHERE Key_name = 'stoks_kode_unique'");
-        if (!empty($rows)) {
-            DB::statement("ALTER TABLE stoks DROP INDEX stoks_kode_unique");
+        if (!$isSqlite) {
+            $rows = DB::select("SHOW INDEX FROM stoks WHERE Key_name = 'stoks_kode_unique'");
+            if (!empty($rows)) {
+                DB::statement("ALTER TABLE stoks DROP INDEX stoks_kode_unique");
+            }
         }
 
-        // Buat composite unique kode + cabang_id
-        Schema::table('stoks', function (Blueprint $table) {
-            $table->unique(['kode', 'cabang_id'], 'stoks_kode_cabang_unique');
-        });
+        // Buat composite unique kode + cabang_id (skip bila index sudah ada)
+        $alreadyExists = $isSqlite
+            ? collect(DB::select("PRAGMA index_list('stoks')"))->contains(fn ($i) => $i->name === 'stoks_kode_cabang_unique')
+            : !empty(DB::select("SHOW INDEX FROM stoks WHERE Key_name = 'stoks_kode_cabang_unique'"));
+        if (!$alreadyExists) {
+            Schema::table('stoks', function (Blueprint $table) {
+                $table->unique(['kode', 'cabang_id'], 'stoks_kode_cabang_unique');
+            });
+        }
     }
 
     public function down(): void

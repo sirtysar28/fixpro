@@ -8,7 +8,7 @@ class HargaGrosir extends Model
 {
     protected $fillable = [
         'cabang_id', 'stok_id',
-        'harga_grosir1', 'harga_grosir2', 'harga_grosir3', 'harga_reseller', 'harga_distributor',
+        'harga_grosir1', 'harga_grosir2', 'harga_grosir3', 'harga_reseller', 'harga_member', 'harga_distributor',
         'min_qty_grosir1', 'min_qty_grosir2', 'min_qty_grosir3', 'aktif',
     ];
 
@@ -17,6 +17,7 @@ class HargaGrosir extends Model
         'harga_grosir2' => 'decimal:2',
         'harga_grosir3' => 'decimal:2',
         'harga_reseller' => 'decimal:2',
+        'harga_member' => 'decimal:2',
         'harga_distributor' => 'decimal:2',
         'min_qty_grosir1' => 'integer',
         'min_qty_grosir2' => 'integer',
@@ -42,6 +43,7 @@ class HargaGrosir extends Model
             'grosir2' => 'harga_grosir2',
             'grosir3' => 'harga_grosir3',
             'reseller' => 'harga_reseller',
+            'member' => 'harga_member',
             'distributor' => 'harga_distributor',
         ];
         $col = $map[$level] ?? null;

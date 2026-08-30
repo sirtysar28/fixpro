@@ -55,7 +55,19 @@ class UserManagementController extends Controller
 
         $roles = Role::orderBy('id')->get();
 
-        return view('user-management.index', compact('users', 'cabangs', 'roles'));
+        // Token aktivasi tersedia (pilihan di form edit) + token terpakai per user
+        // supaya kolom Masa Berlaku jelas: paket apa & durasi berapa yang mengaktivasi.
+        $availableCodes = \App\Models\ActivationCode::where('is_used', false)
+            ->where('status', 'aktif')
+            ->orderByDesc('created_at')
+            ->limit(200)
+            ->get();
+        $codeByUser = \App\Models\ActivationCode::where('is_used', true)
+            ->whereNotNull('used_by_user_id')
+            ->get()
+            ->keyBy('used_by_user_id');
+
+        return view('user-management.index', compact('users', 'cabangs', 'roles', 'availableCodes', 'codeByUser'));
     }
 
     public function create()
@@ -64,8 +76,10 @@ class UserManagementController extends Controller
 
         $cabangs = Cabang::where('aktif', true)->orderBy('nama')->get();
         $roles = Role::orderBy('id')->get();
+        $availableCodes = collect();
+        $codeByUser = collect();
 
-        return view('user-management.index', compact('cabangs', 'roles'));
+        return view('user-management.index', compact('cabangs', 'roles', 'availableCodes', 'codeByUser'));
     }
 
     public function store(Request $request)
@@ -75,7 +89,7 @@ class UserManagementController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:6',
+            'password' => 'required|string|min:6|confirmed',
             'phone' => 'nullable|string|max:30',
             'role_id' => 'required|exists:roles,id',
             'cabang_id' => 'required|exists:cabang,id',
@@ -188,12 +202,13 @@ class UserManagementController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $user_management->id,
-            'password' => 'nullable|string|min:6',
+            'password' => 'nullable|string|min:6|confirmed',
             'phone' => 'nullable|string|max:30',
             'role_id' => 'required|exists:roles,id',
             'cabang_id' => 'required|exists:cabang,id',
             'is_active' => 'nullable',
             'paket' => 'nullable|in:standar,enterprise',
+            'activation_code_id' => 'nullable|exists:activation_codes,id',
         ]);
 
         // Admin Cabang: tidak bisa ubah role menjadi Admin, hanya Staff & User
@@ -265,7 +280,25 @@ class UserManagementController extends Controller
 
         AuditLogService::log('user_management', 'update', "Mengupdate akun: {$user_management->name} ({$user_management->email})");
 
-        return redirect()->route('user-management.index')->with('success', 'Akun berhasil diupdate!');
+        // ===== Aktivasi via token (pilihan di form edit — Super Admin) =====
+        // Jelas: role & paket user yang diaktivasi + masa berlaku baru tercantum di hasil.
+        $tokenMsg = '';
+        if (auth()->user()->isSuperAdmin() && !empty($validated['activation_code_id'])) {
+            $code = \App\Models\ActivationCode::find($validated['activation_code_id']);
+            if (!$code || $code->is_used) {
+                return redirect()->route('user-management.index')->with('error', 'Token aktivasi tidak tersedia atau sudah dipakai. Pilih token lain.');
+            }
+            if ($code->activate($user_management)) {
+                $user_management->refresh();
+                $roleLabel = $user_management->role?->name ?? '-';
+                $paketLabel = $code->paket === 'enterprise' ? 'Enterprise' : 'Standard';
+                $sampai = $user_management->is_permanent ? 'Permanen' : ($user_management->login_expires_at?->format('d/m/Y') ?? '-');
+                $tokenMsg = " Token {$code->code} dipakai — Role: {$roleLabel} · Paket: {$paketLabel} · {$code->durasiLabel()}. Masa berlaku s.d. {$sampai}.";
+                AuditLogService::log('user_management', 'update', "Aktivasi token {$code->code} (Paket {$paketLabel} — {$code->durasiLabel()}) untuk {$user_management->email} [Role: {$roleLabel}] — masa berlaku s.d. {$sampai}");
+            }
+        }
+
+        return redirect()->route('user-management.index')->with('success', 'Akun berhasil diupdate!' . $tokenMsg);
     }
 
     public function destroy(User $user_management)

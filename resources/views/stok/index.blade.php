@@ -79,8 +79,8 @@
     </div>
 </div>
 
-<div class="flex-between mb-4">
-    <h2 style="margin:0">Stok Sparepart</h2>
+<div class="flex-between mb-4" id="import-stok">
+    <h2 style="margin:0">Daftar Stok Sparepart</h2>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
         <a href="{{ route('stok.template-excel') }}" class="btn btn-secondary btn-sm"><i class="fas fa-download"></i> Template</a>
         <a href="{{ route('stok.export-excel') }}" class="btn btn-success btn-sm" style="background:#16a34a;color:#fff"><i class="fas fa-file-excel"></i> Export Excel</a>
@@ -114,17 +114,57 @@
 </div>
 
 <form method="GET" class="card mb-4">
-    <div style="display:flex;gap:8px;align-items:flex-end">
-        <div style="flex:1"><label class="text-xs font-bold text-muted">Cari</label>
-        <input type="text" name="search" class="form-input" value="{{ request('search') }}" placeholder="Cari sparepart..."></div>
+    {{-- Pertahankan sorting saat filter berubah --}}
+    <input type="hidden" name="sort" value="{{ $sort }}">
+    <input type="hidden" name="dir" value="{{ $dir }}">
+    <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+        <div style="flex:1;min-width:160px"><label class="text-xs font-bold text-muted">Cari</label>
+        <input type="text" name="search" class="form-input" value="{{ request('search') }}" placeholder="Nama / kode / barcode / merk..."></div>
+        <div style="min-width:130px"><label class="text-xs font-bold text-muted">Kategori</label>
+        <select name="kategori" class="form-input">
+            <option value="">Semua</option>
+            @foreach($kategoriList as $k)
+            <option value="{{ $k }}" {{ request('kategori') == $k ? 'selected' : '' }}>{{ $k }}</option>
+            @endforeach
+        </select></div>
+        <div style="min-width:120px"><label class="text-xs font-bold text-muted">Merk HP</label>
+        <select name="merk" class="form-input">
+            <option value="">Semua</option>
+            @foreach($merkList as $m)
+            <option value="{{ $m }}" {{ request('merk') == $m ? 'selected' : '' }}>{{ $m }}</option>
+            @endforeach
+        </select></div>
+        @if($allowedCabangs->count() > 1)
+        <div style="min-width:150px"><label class="text-xs font-bold text-muted">Cabang / Gudang</label>
+        <select name="cabang" class="form-input">
+            @foreach($allowedCabangs as $c)
+            <option value="{{ $c->id }}" {{ (int) $filterCabang === (int) $c->id ? 'selected' : '' }}>{{ $c->nama }} ({{ $c->tipe ?? 'toko' }})</option>
+            @endforeach
+        </select></div>
+        @endif
+        <div style="min-width:110px"><label class="text-xs font-bold text-muted">Per Halaman</label>
+        <select name="per_page" class="form-input">
+            @foreach([10, 20, 50, 100] as $pp)
+            <option value="{{ $pp }}" {{ $perPage === $pp ? 'selected' : '' }}>{{ $pp }} data</option>
+            @endforeach
+        </select></div>
         <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i></button>
+        <a href="{{ route('stok.index') }}" class="btn btn-secondary btn-sm" title="Reset filter"><i class="fas fa-redo"></i></a>
     </div>
 </form>
 
 <div class="card">
     <div class="table-wrap">
         <table>
-            <thead><tr><th>Kode</th><th>Nama</th><th>Kategori</th><th>Merk HP</th><th>Stok</th><th>Modal</th><th>Jual</th><th>Min Alert</th><th>Barcode</th><th>Aksi</th></tr></thead>
+            <thead><tr>
+                <th><a href="{{ route('stok.index', array_merge(\Illuminate\Support\Arr::except(request()->query(), ['page']), ['sort' => 'kode', 'dir' => $sort === 'kode' && $dir === 'asc' ? 'desc' : 'asc'])) }}" style="text-decoration:none;color:inherit">Kode @if($sort === 'kode')<i class="fas fa-caret-{{ $dir === 'asc' ? 'up' : 'down' }}"></i>@endif</a></th>
+                <th><a href="{{ route('stok.index', array_merge(\Illuminate\Support\Arr::except(request()->query(), ['page']), ['sort' => 'nama', 'dir' => $sort === 'nama' && $dir === 'asc' ? 'desc' : 'asc'])) }}" style="text-decoration:none;color:inherit">Nama @if($sort === 'nama')<i class="fas fa-caret-{{ $dir === 'asc' ? 'up' : 'down' }}"></i>@endif</a></th>
+                <th><a href="{{ route('stok.index', array_merge(\Illuminate\Support\Arr::except(request()->query(), ['page']), ['sort' => 'kategori', 'dir' => $sort === 'kategori' && $dir === 'asc' ? 'desc' : 'asc'])) }}" style="text-decoration:none;color:inherit">Kategori @if($sort === 'kategori')<i class="fas fa-caret-{{ $dir === 'asc' ? 'up' : 'down' }}"></i>@endif</a></th>
+                <th><a href="{{ route('stok.index', array_merge(\Illuminate\Support\Arr::except(request()->query(), ['page']), ['sort' => 'merk_hp', 'dir' => $sort === 'merk_hp' && $dir === 'asc' ? 'desc' : 'asc'])) }}" style="text-decoration:none;color:inherit">Merk HP @if($sort === 'merk_hp')<i class="fas fa-caret-{{ $dir === 'asc' ? 'up' : 'down' }}"></i>@endif</a></th>
+                <th><a href="{{ route('stok.index', array_merge(\Illuminate\Support\Arr::except(request()->query(), ['page']), ['sort' => 'stok', 'dir' => $sort === 'stok' && $dir === 'asc' ? 'desc' : 'asc'])) }}" style="text-decoration:none;color:inherit">Stok @if($sort === 'stok')<i class="fas fa-caret-{{ $dir === 'asc' ? 'up' : 'down' }}"></i>@endif</a></th>
+                <th><a href="{{ route('stok.index', array_merge(\Illuminate\Support\Arr::except(request()->query(), ['page']), ['sort' => 'modal', 'dir' => $sort === 'modal' && $dir === 'asc' ? 'desc' : 'asc'])) }}" style="text-decoration:none;color:inherit">Modal @if($sort === 'modal')<i class="fas fa-caret-{{ $dir === 'asc' ? 'up' : 'down' }}"></i>@endif</a></th>
+                <th><a href="{{ route('stok.index', array_merge(\Illuminate\Support\Arr::except(request()->query(), ['page']), ['sort' => 'jual', 'dir' => $sort === 'jual' && $dir === 'asc' ? 'desc' : 'asc'])) }}" style="text-decoration:none;color:inherit">Jual @if($sort === 'jual')<i class="fas fa-caret-{{ $dir === 'asc' ? 'up' : 'down' }}"></i>@endif</a></th>
+                <th>Min Alert</th><th>Barcode</th><th>Aksi</th></tr></thead>
             <tbody>
                 @foreach($stoks as $s)
                 <tr>
@@ -247,7 +287,7 @@ function printSingleBarcodeFromPopup() {
 document.addEventListener('keydown', e => { if(e.key === 'Escape') closeBarcodePopup(); });
 
 function quickStok(id, delta) {
-    fetch('/api/quick-stok', {
+    fetch('{{ route('stok.quick-update') }}', {
         method: 'POST',
         headers: {'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content},
         body: JSON.stringify({id: id, delta: delta})

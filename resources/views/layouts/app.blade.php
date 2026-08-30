@@ -661,28 +661,57 @@
             @endif
             @endif
 
-            {{-- SUPER ADMIN ONLY: Aktivasi, Lisensi, Request, Bank, Audit --}}
+            {{-- SUPER ADMIN ONLY: CONTROL (Request Aktivasi, Kode, Status, Paket, User, Role, Audit) --}}
             @if(auth()->user()->isSuperAdmin())
-            <a href="{{ route('serial-number.index') }}" class="{{ request()->routeIs('serial-number.*') ? 'active' : '' }}">
-                <i class="fas fa-key"></i> Aktivasi & Lisensi
+            <div class="nav-label" style="margin-top: 8px;">Invoice Sparepart (Pusat)</div>
+            <a href="{{ route('invoice.create') }}" class="{{ request()->routeIs('invoice.create') ? 'active' : '' }}">
+                <i class="fas fa-file-invoice-dollar"></i> Buat Invoice
             </a>
-            <a href="{{ route('activation-code.index') }}" class="{{ request()->routeIs('activation-code.*') ? 'active' : '' }}">
-                <i class="fas fa-ticket-alt"></i> Kode Aktivasi
+            <a href="{{ route('invoice.riwayat') }}" class="{{ request()->routeIs('invoice.riwayat', 'invoice.show', 'invoice.pdf', 'invoice.thermal') ? 'active' : '' }}">
+                <i class="fas fa-history"></i> Riwayat Invoice
             </a>
+            <a href="{{ route('invoice.pembayaran') }}" class="{{ request()->routeIs('invoice.pembayaran') ? 'active' : '' }}">
+                <i class="fas fa-money-bill-wave"></i> Pembayaran
+            </a>
+            <a href="{{ route('invoice.piutang') }}" class="{{ request()->routeIs('invoice.piutang') ? 'active' : '' }}">
+                <i class="fas fa-hand-holding-usd"></i> Piutang
+            </a>
+            <a href="{{ route('invoice.retur') }}" class="{{ request()->routeIs('invoice.retur*') ? 'active' : '' }}">
+                <i class="fas fa-undo"></i> Retur
+            </a>
+            <div class="nav-label" style="margin-top: 8px;">Control</div>
             @php
-                $pendingActivation = \App\Models\ActivationRequest::where('status', 'pending')->count();
+                $pendingActivation = \App\Models\ActivationRequest::whereIn('status', ['pending','processing'])->count();
             @endphp
             <a href="{{ route('admin.activation-requests.index') }}" class="{{ request()->routeIs('admin.activation-requests.*') ? 'active' : '' }}">
-                <i class="fas fa-user-clock"></i> Request Aktivasi
+                <i class="fas fa-user-clock"></i> Request Aktivasi Cabang
                 @if($pendingActivation > 0)
                 <span style="background:var(--danger);color:#fff;font-size:.6rem;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:auto">{{ $pendingActivation }}</span>
                 @endif
             </a>
-            <a href="{{ route('bank-accounts.index') }}" class="{{ request()->routeIs('bank-accounts.*') ? 'active' : '' }}">
-                <i class="fas fa-university"></i> Rekening Bank
+            <a href="{{ route('activation-code.index') }}" class="{{ request()->routeIs('activation-code.*') ? 'active' : '' }}">
+                <i class="fas fa-ticket-alt"></i> Kode Aktivasi
+            </a>
+            <a href="{{ route('activation.status') }}" class="{{ request()->routeIs('activation.status') ? 'active' : '' }}">
+                <i class="fas fa-shield-alt"></i> Status Aktivasi
+            </a>
+            <a href="{{ route('subscription.index') }}" class="{{ request()->routeIs('subscription.*') ? 'active' : '' }}">
+                <i class="fas fa-star"></i> Paket / Langganan
+            </a>
+            <a href="{{ route('user-management.index') }}" class="{{ request()->routeIs('user-management.*') ? 'active' : '' }}">
+                <i class="fas fa-users-cog"></i> Kelola User
+            </a>
+            <a href="{{ route('control.roles') }}" class="{{ request()->routeIs('control.roles') ? 'active' : '' }}">
+                <i class="fas fa-user-shield"></i> Role & Permission
             </a>
             <a href="{{ route('audit-log.index') }}" class="{{ request()->routeIs('audit-log.*') ? 'active' : '' }}">
-                <i class="fas fa-clipboard-list"></i> {{ t('menu.audit_log','Audit & Log') }}
+                <i class="fas fa-clipboard-list"></i> {{ t('menu.audit_log','Audit Log') }}
+            </a>
+            <a href="{{ route('serial-number.index') }}" class="{{ request()->routeIs('serial-number.*') ? 'active' : '' }}">
+                <i class="fas fa-key"></i> Aktivasi & Lisensi
+            </a>
+            <a href="{{ route('bank-accounts.index') }}" class="{{ request()->routeIs('bank-accounts.*') ? 'active' : '' }}">
+                <i class="fas fa-university"></i> Rekening Bank
             </a>
             @php
                 $failedSync = \App\Models\SyncQueue::whereIn('status', ['failed','conflict'])->count();

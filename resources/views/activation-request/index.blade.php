@@ -88,22 +88,73 @@
     </div>
     <form method="POST" action="{{ route('activation-request.store') }}" enctype="multipart/form-data">
         @csrf
-        <input type="hidden" name="durasi" value="permanen">
-        <div class="form-group">
-            <label>Nominal Transfer (Rp)</label>
-            <input type="number" name="nominal_bayar" class="form-input" placeholder="0" min="0" step="1000">
-            <div class="text-xs text-muted" style="margin-top:4px">Sesuaikan dengan nominal yang ditransfer</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Nama Cabang *</label>
+                <input type="text" name="nama_cabang" class="form-input" value="{{ auth()->user()->cabang?->nama ?? '' }}" required placeholder="Contoh: FIXPRO Cabang Jakarta">
+            </div>
+            <div class="form-group">
+                <label>Nama Pemilik / Admin *</label>
+                <input type="text" name="nama_pemilik" class="form-input" value="{{ auth()->user()->name }}" required>
+            </div>
         </div>
         <div class="form-group">
-            <label>Upload Bukti Transfer *</label>
-            <input type="file" name="bukti_transfer" class="form-input" accept="image/*" required>
-            <div class="text-xs text-muted" style="margin-top:4px">Upload foto/screenshot bukti transfer (JPG/PNG, max 2MB)</div>
+            <label>Alamat Cabang</label>
+            <textarea name="alamat" class="form-input" rows="2" placeholder="Alamat lengkap cabang/toko...">{{ auth()->user()->cabang?->alamat ?? '' }}</textarea>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Nomor WhatsApp</label>
+                <input type="text" name="no_wa" class="form-input" value="{{ auth()->user()->phone }}" placeholder="08xxxxxxxxxx">
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" name="email" class="form-input" value="{{ auth()->user()->email }}" placeholder="email@contoh.com">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Paket / Langganan</label>
+                <select name="paket" id="reqPaket" class="form-input">
+                    <option value="standar">Standard (1 cabang)</option>
+                    <option value="enterprise">Enterprise (pusat + cabang anak)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Masa Berlaku Aktivasi</label>
+                <select name="durasi" id="reqDurasi" class="form-input">
+                    <option value="standard_1_tahun" selected>Standard — 1 Tahun</option>
+                    <option value="enterprise_1_tahun">Enterprise — 1 Tahun</option>
+                </select>
+                <div class="text-xs text-muted" style="margin-top:4px">Tidak ada opsi permanen — masa berlaku mengikuti paket yang didaftarkan (Standard / Enterprise, masing-masing 1 tahun).</div>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Jumlah User</label>
+                <input type="number" name="jumlah_user" class="form-input" value="1" min="1" max="100">
+            </div>
+            <div class="form-group">
+                <label>Jumlah Perangkat (opsional)</label>
+                <input type="number" name="jumlah_perangkat" class="form-input" value="" min="1" max="100" placeholder="Kosongkan jika tidak perlu">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Nominal Transfer (Rp)</label>
+                <input type="number" name="nominal_bayar" class="form-input" placeholder="0" min="0" step="1000">
+            </div>
+            <div class="form-group">
+                <label>Upload Bukti Transfer *</label>
+                <input type="file" name="bukti_transfer" class="form-input" accept="image/*" required>
+                <div class="text-xs text-muted" style="margin-top:4px">JPG/PNG, max 2MB</div>
+            </div>
         </div>
         <div class="form-group">
             <label>Catatan (Opsional)</label>
             <textarea name="catatan" class="form-input" rows="3" placeholder="Catatan tambahan jika ada..."></textarea>
         </div>
-        <button type="submit" class="btn btn-primary" onclick="return confirm('Kirim request aktivasi permanen? Pastikan bukti transfer sudah benar.')">
+        <button type="submit" class="btn btn-primary" onclick="return confirm('Kirim request aktivasi? Pastikan bukti transfer sudah benar.')">
             <i class="fas fa-paper-plane"></i> Kirim Request Aktivasi
         </button>
     </form>
@@ -177,4 +228,20 @@
 </div>
 
 @endif
+
+<script>
+    // Sinkronkan paket & masa berlaku: Standard — 1 Tahun ↔ Enterprise — 1 Tahun
+    document.addEventListener('DOMContentLoaded', function () {
+        var durasi = document.getElementById('reqDurasi');
+        var paket = document.getElementById('reqPaket');
+        if (durasi && paket) {
+            durasi.addEventListener('change', function () {
+                paket.value = this.value.indexOf('enterprise') === 0 ? 'enterprise' : 'standar';
+            });
+            paket.addEventListener('change', function () {
+                durasi.value = this.value === 'enterprise' ? 'enterprise_1_tahun' : 'standard_1_tahun';
+            });
+        }
+    });
+</script>
 @endsection

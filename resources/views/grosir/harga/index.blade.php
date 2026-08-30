@@ -44,6 +44,7 @@
                     <th style="text-align:right;">Grosir 2</th>
                     <th style="text-align:right;">Grosir 3</th>
                     <th style="text-align:right;">Reseller</th>
+                    <th style="text-align:right;">Member</th>
                     <th style="text-align:right;">Distributor</th>
                     <th></th>
                 </tr>
@@ -61,6 +62,7 @@
                     <td style="text-align:right;">{{ $hg?->harga_grosir2 ? formatRp($hg->harga_grosir2) : '—' }}</td>
                     <td style="text-align:right;">{{ $hg?->harga_grosir3 ? formatRp($hg->harga_grosir3) : '—' }}</td>
                     <td style="text-align:right;">{{ $hg?->harga_reseller ? formatRp($hg->harga_reseller) : '—' }}</td>
+                    <td style="text-align:right;">{{ $hg?->harga_member ? formatRp($hg->harga_member) : '—' }}</td>
                     <td style="text-align:right;">{{ $hg?->harga_distributor ? formatRp($hg->harga_distributor) : '—' }}</td>
                     <td>
                         <button onclick="bukaFormHarga({{ $s->id }})" class="btn btn-sm {{ $hg ? 'btn-secondary' : 'btn-primary' }}">
@@ -69,7 +71,7 @@
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:28px;">Belum ada produk. Tambahkan stok barang dulu.</td></tr>
+                <tr><td colspan="9" style="text-align:center;color:#94a3b8;padding:28px;">Belum ada produk. Tambahkan stok barang dulu.</td></tr>
                 @endforelse
             </tbody>
         </table>
@@ -100,8 +102,9 @@
             </div>
             <div class="form-row">
                 <div class="form-group"><label>Reseller (Rp)</label><input type="number" step="any" min="0" name="harga_reseller" id="hgRes" class="form-input"></div>
-                <div class="form-group"><label>Distributor (Rp)</label><input type="number" step="any" min="0" name="harga_distributor" id="hgDis" class="form-input"></div>
+                <div class="form-group"><label>Member (Rp)</label><input type="number" step="any" min="0" name="harga_member" id="hgMem" class="form-input"></div>
             </div>
+            <div class="form-group"><label>Distributor (Rp)</label><input type="number" step="any" min="0" name="harga_distributor" id="hgDis" class="form-input"></div>
             <div class="form-group">
                 <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
                     <input type="checkbox" name="aktif" value="1" id="hgAktif" checked> Aktifkan harga grosir produk ini
@@ -115,42 +118,57 @@
     </div>
 </form>
 
-{{-- Data harga untuk prefill form --}}
+{{-- 1. PERSIAPAN DATA DI PHP (Menghindari error parsing Blade) --}}
+@php
+    $hargaData = $stoks->getCollection()->mapWithKeys(function ($s) {
+        return [
+            $s->id => [
+                'nama' => $s->nama,
+                'kode' => $s->kode,
+                'eceran' => (float) $s->jual,
+                'hg' => $s->hargaGrosir ? [
+                    'g1' => $s->hargaGrosir->harga_grosir1,
+                    'g2' => $s->hargaGrosir->harga_grosir2,
+                    'g3' => $s->hargaGrosir->harga_grosir3,
+                    'res' => $s->hargaGrosir->harga_reseller,
+                    'mem' => $s->hargaGrosir->harga_member,
+                    'dis' => $s->hargaGrosir->harga_distributor,
+                    'min1' => $s->hargaGrosir->min_qty_grosir1,
+                    'min2' => $s->hargaGrosir->min_qty_grosir2,
+                    'min3' => $s->hargaGrosir->min_qty_grosir3,
+                    'aktif' => $s->hargaGrosir->aktif,
+                ] : null,
+            ]
+        ];
+    })->all();
+@endphp
+
+{{-- 2. OUTPUT KE JAVASCRIPT --}}
 <script>
-    window.__hargaData = @json($stoks->getCollection()->mapWithKeys(fn($s) => [$s->id => [
-        'nama' => $s->nama,
-        'kode' => $s->kode,
-        'eceran' => (float) $s->jual,
-        'hg' => $s->hargaGrosir ? [
-            'g1' => $s->hargaGrosir->harga_grosir1,
-            'g2' => $s->hargaGrosir->harga_grosir2,
-            'g3' => $s->hargaGrosir->harga_grosir3,
-            'res' => $s->hargaGrosir->harga_reseller,
-            'dis' => $s->hargaGrosir->harga_distributor,
-            'min1' => $s->hargaGrosir->min_qty_grosir1,
-            'min2' => $s->hargaGrosir->min_qty_grosir2,
-            'min3' => $s->hargaGrosir->min_qty_grosir3,
-            'aktif' => $s->hargaGrosir->aktif,
-        ] : null,
-    ]])->all());
+    window.__hargaData = @json($hargaData);
 
     function bukaFormHarga(id) {
         const d = window.__hargaData[id];
         if (!d) return;
+        
         document.getElementById('hgNama').textContent = d.nama;
         document.getElementById('hgSub').textContent = d.kode + ' · Harga eceran: ' + formatRp(d.eceran);
         document.getElementById('hgStokId').value = id;
+        
         const hg = d.hg || {};
         document.getElementById('hgG1').value = hg.g1 ?? '';
         document.getElementById('hgG2').value = hg.g2 ?? '';
         document.getElementById('hgG3').value = hg.g3 ?? '';
         document.getElementById('hgRes').value = hg.res ?? '';
+        document.getElementById('hgMem').value = hg.mem ?? '';
         document.getElementById('hgDis').value = hg.dis ?? '';
         document.getElementById('hgMin1').value = hg.min1 ?? 3;
         document.getElementById('hgMin2').value = hg.min2 ?? 6;
         document.getElementById('hgMin3').value = hg.min3 ?? 12;
         document.getElementById('hgAktif').checked = hg.aktif ?? true;
-        document.getElementById('formHarga').style.display = 'block';
+        
+        // Diperbaiki menjadi 'flex' agar modal tetap rata tengah sesuai style inline wrapper-nya
+        document.getElementById('formHarga').style.display = 'flex';
     }
 </script>
 
@@ -168,6 +186,7 @@
                     <option value="grosir2">Grosir 2</option>
                     <option value="grosir3">Grosir 3</option>
                     <option value="reseller">Reseller</option>
+                    <option value="member">Member</option>
                     <option value="distributor">Distributor</option>
                 </select>
             </div>

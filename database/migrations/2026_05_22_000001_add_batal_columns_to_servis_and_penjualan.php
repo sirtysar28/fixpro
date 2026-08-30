@@ -17,7 +17,10 @@ return new class extends Migration
         });
 
         // Ubah enum status servis: tambah 'Dibatalkan'
-        DB::statement("ALTER TABLE servis MODIFY COLUMN status ENUM('Masuk','Proses','Pending','Selesai','Dibatalkan') DEFAULT 'Masuk'");
+        // (MODIFY hanya untuk MySQL — SQLite dipakai saat testing, enum tidak ada)
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE servis MODIFY COLUMN status ENUM('Masuk','Proses','Pending','Selesai','Dibatalkan') DEFAULT 'Masuk'");
+        }
 
         // Tambah kolom pembatalan ke tabel penjualan_sparepart
         Schema::table('penjualan_sparepart', function (Blueprint $table) {
@@ -35,7 +38,9 @@ return new class extends Migration
             $table->dropColumn(['alasan_pembatalan', 'dibatalkan_oleh', 'dibatalkan_pada']);
         });
 
-        DB::statement("ALTER TABLE servis MODIFY COLUMN status ENUM('Masuk','Proses','Pending','Selesai') DEFAULT 'Masuk'");
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE servis MODIFY COLUMN status ENUM('Masuk','Proses','Pending','Selesai') DEFAULT 'Masuk'");
+        }
 
         Schema::table('penjualan_sparepart', function (Blueprint $table) {
             $table->dropForeign(['dibatalkan_oleh']);

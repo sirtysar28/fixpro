@@ -42,7 +42,9 @@ return new class extends Migration
 
         // Status pembayaran: tambah 'Hutang' (alias resmi dari 'Belum Dibayar')
         // 'Belum Dibayar' tetap dipertahankan agar data lama tidak rusak.
-        DB::statement("ALTER TABLE pembelians MODIFY status ENUM('Belum Dibayar','Hutang','Sebagian','Lunas','Dibatalkan') NOT NULL DEFAULT 'Belum Dibayar'");
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE pembelians MODIFY status ENUM('Belum Dibayar','Hutang','Sebagian','Lunas','Dibatalkan') NOT NULL DEFAULT 'Belum Dibayar'");
+        }
 
         if (!Schema::hasColumn('pembelians', 'status_transaksi')) {
             Schema::table('pembelians', function (Blueprint $table) {
@@ -135,7 +137,9 @@ return new class extends Migration
                 }
             }
         });
-        DB::statement("ALTER TABLE pembelians MODIFY status ENUM('Belum Dibayar','Sebagian','Lunas','Dibatalkan') NOT NULL DEFAULT 'Belum Dibayar'");
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE pembelians MODIFY status ENUM('Belum Dibayar','Sebagian','Lunas','Dibatalkan') NOT NULL DEFAULT 'Belum Dibayar'");
+        }
         DB::table('pembelians')->where('status', 'Hutang')->update(['status' => 'Belum Dibayar']);
     }
 };

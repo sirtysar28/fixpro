@@ -14,10 +14,18 @@ class ActivationCode extends Model
 
     protected $fillable = [
         'code',
+        'cabang_id',
+        'status',
         'durasi',
+        'paket',
+        'jumlah_user',
         'is_used',
         'used_by_user_id',
         'used_at',
+        'activated_at',
+        'activated_by',
+        'mulai_berlaku',
+        'berakhir_berlaku',
         'created_by',
         'note',
     ];
@@ -25,7 +33,47 @@ class ActivationCode extends Model
     protected $casts = [
         'is_used' => 'boolean',
         'used_at' => 'datetime',
+        'activated_at' => 'datetime',
+        'mulai_berlaku' => 'datetime',
+        'berakhir_berlaku' => 'datetime',
     ];
+
+    public function cabang()
+    {
+        return $this->belongsTo(Cabang::class);
+    }
+
+    public function activatedBy()
+    {
+        return $this->belongsTo(User::class, 'activated_by');
+    }
+
+    /** Apakah kode masih berlaku (aktif & belum expired) */
+    public function berlaku(): bool
+    {
+        if ($this->status !== 'aktif') return false;
+        if ($this->berakhir_berlaku && $this->berakhir_berlaku->isPast()) return false;
+        return true;
+    }
+
+    public function statusBerlakuLabel(): string
+    {
+        if ($this->status === 'nonaktif') return 'Nonaktif';
+        if ($this->berakhir_berlaku && $this->berakhir_berlaku->isPast()) return 'Expired';
+        return 'Aktif';
+    }
+
+    /**
+     * Generate kode aktivasi unik (tanpa menyimpan).
+     * Format: FX-{UPPERCASE_RANDOM}
+     */
+    public static function generateUniqueCode(): string
+    {
+        do {
+            $code = 'FX-' . strtoupper(\Illuminate\Support\Str::random(8));
+        } while (self::where('code', $code)->exists());
+        return $code;
+    }
 
     /**
      * Generate kode aktivasi unik.
@@ -33,12 +81,8 @@ class ActivationCode extends Model
      */
     public static function generate(string $durasi = '1_bulan', ?int $createdBy = null, ?string $note = null): self
     {
-        do {
-            $code = 'FX-' . strtoupper(Str::random(8));
-        } while (self::where('code', $code)->exists());
-
         return self::create([
-            'code'       => $code,
+            'code'       => self::generateUniqueCode(),
             'durasi'     => $durasi,
             'created_by' => $createdBy,
             'note'       => $note,
@@ -48,6 +92,8 @@ class ActivationCode extends Model
     public function durasiLabel(): string
     {
         return match ($this->durasi) {
+            'standard_1_tahun'  => 'Standard — 1 Tahun',
+            'enterprise_1_tahun'=> 'Enterprise — 1 Tahun',
             '1_bulan'  => '1 Bulan',
             '3_bulan'  => '3 Bulan',
             '6_bulan'  => '6 Bulan',
@@ -60,12 +106,13 @@ class ActivationCode extends Model
     public function durasiDays(): int
     {
         return match ($this->durasi) {
+            'standard_1_tahun', 'enterprise_1_tahun' => 365,
             '1_bulan'  => 30,
             '3_bulan'  => 90,
             '6_bulan'  => 180,
             '1_tahun'  => 365,
-            'permanen' => 0,
-            default    => 30,
+            'permanen' => 0, // legacy data lama
+            default    => 365,
         };
     }
 

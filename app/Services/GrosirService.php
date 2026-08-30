@@ -24,10 +24,12 @@ class GrosirService
     /** Daftar level harga grosir (key → label) */
     public const LEVELS = [
         'eceran' => 'Harga Eceran',
+        'retail' => 'Harga Retail',
         'grosir1' => 'Grosir 1',
         'grosir2' => 'Grosir 2',
         'grosir3' => 'Grosir 3',
         'reseller' => 'Reseller',
+        'member' => 'Member',
         'distributor' => 'Distributor',
     ];
 

@@ -315,6 +315,31 @@ class DashboardController extends Controller
         $servisPending = $statusChart['Pending'];
         $servisSelesai = $statusChart['Selesai'] + $statusChart['Diambil'];
 
+        // ====== INVOICE SPAREPART STATS (revisi: pusat transaksi penjualan) ======
+        $invoiceStats = null;
+        if (\Schema::hasTable('invoice_spareparts')) {
+            $invBase = \App\Models\InvoiceSparepart::where('status', '!=', 'Dibatalkan')
+                ->when(!$showAll, fn($q) => $q->where('cabang_id', $cabangId));
+            $invToday = (clone $invBase)->whereDate('tanggal', $today);
+            $invoiceStats = [
+                'penjualan_hari_ini' => (clone $invToday)->sum('total'),
+                'invoice_hari_ini' => (clone $invToday)->count(),
+                'retail' => (clone $invBase)->where('tipe_pelanggan', 'Umum')->sum('total'),
+                'grosir' => (clone $invBase)->whereIn('tipe_pelanggan', ['Grosir', 'Distributor'])->sum('total'),
+                'reseller' => (clone $invBase)->where('tipe_pelanggan', 'Reseller')->sum('total'),
+                'member' => (clone $invBase)->where('tipe_pelanggan', 'Member')->sum('total'),
+                'piutang' => \App\Models\InvoiceSparepart::whereIn('status', ['Piutang', 'Sebagian'])
+                    ->when(!$showAll, fn($q) => $q->where('cabang_id', $cabangId))->sum('sisa'),
+                'jatuh_tempo' => \App\Models\InvoiceSparepart::whereIn('status', ['Piutang', 'Sebagian'])
+                    ->whereDate('jatuh_tempo', '<', $today)
+                    ->when(!$showAll, fn($q) => $q->where('cabang_id', $cabangId))->count(),
+                'pembayaran_masuk' => \Schema::hasTable('invoice_sparepart_payments')
+                    ? \App\Models\InvoiceSparepartPayment::whereDate('tanggal', $today)
+                        ->whereHas('invoice', fn($q) => $showAll ? $q : $q->where('cabang_id', $cabangId))->sum('jumlah')
+                    : 0,
+            ];
+        }
+
         return view('dashboard', compact(
             'totalServis', 'menungguDiambil', 'selesaiHariIni',
             'labaServisHariIni', 'omsetHariIni', 'labaSparepartHariIni',
@@ -327,7 +352,7 @@ class DashboardController extends Controller
             'labaBersihTotal', 'labaServisTotal', 'totalPendapatan', 'marginBersihTotal',
             'statusChart', 'teknisiPerf', 'latestServisBulan', 'latestSpBulan', 'stokAlerts',
             'kasFlow', 'banners', 'activeCabang', 'settings',
-            'totalPelanggan', 'totalTeknisi',
+            'totalPelanggan', 'totalTeknisi', 'invoiceStats',
             'servisMasuk', 'servisProses', 'servisPending', 'servisSelesai',
             'omsetSparepartHariIni', 'showAll',
             'monthStart',

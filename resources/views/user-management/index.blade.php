@@ -60,12 +60,25 @@
         <div class="form-row">
             <div class="form-group">
                 <label>Password *</label>
-                <input type="password" name="password" class="form-input" required minlength="6" placeholder="Min. 6 karakter">
+                <div style="position:relative">
+                    <input type="password" name="password" id="passAdd" class="form-input" required minlength="6" placeholder="Min. 6 karakter" style="padding-right:44px">
+                    <button type="button" class="toggle-pass" onclick="togglePassword('passAdd', this)" title="Tampilkan / Sembunyikan Password"><i class="far fa-eye"></i></button>
+                </div>
             </div>
+            <div class="form-group">
+                <label>Konfirmasi Password *</label>
+                <div style="position:relative">
+                    <input type="password" name="password_confirmation" id="passAddConf" class="form-input" required minlength="6" placeholder="Ulangi password" style="padding-right:44px">
+                    <button type="button" class="toggle-pass" onclick="togglePassword('passAddConf', this)" title="Tampilkan / Sembunyikan Password"><i class="far fa-eye"></i></button>
+                </div>
+            </div>
+        </div>
+        <div class="form-row">
             <div class="form-group">
                 <label>No. HP</label>
                 <input type="tel" name="phone" class="form-input" placeholder="08xxxxxxxxxx">
             </div>
+            <div class="form-group"></div>
         </div>
         <div class="form-row">
             <div class="form-group">
@@ -186,6 +199,16 @@
                         @else
                             <span class="badge badge-normal">-</span>
                         @endif
+                        {{-- Info paket & token yang mengaktivasi (jelas: role diaktivasi paket apa, durasi berapa) --}}
+                        @php($kodeUser = $codeByUser[$u->id] ?? null)
+                        <div style="font-size:.6rem;margin-top:3px">
+                            <span class="badge" style="background:{{ ($u->paket ?? 'standar') === 'enterprise' ? '#eff6ff' : '#f0fdf4' }};color:{{ ($u->paket ?? 'standar') === 'enterprise' ? '#1e40af' : '#166534' }};font-size:10px">
+                                {{ ($u->paket ?? 'standar') === 'enterprise' ? '🚀 Enterprise' : '📦 Standard' }}
+                            </span>
+                            @if($kodeUser)
+                                <span style="color:#64748b" title="Token: {{ $kodeUser->code }}"> · {{ $kodeUser->durasiLabel() }}</span>
+                            @endif
+                        </div>
                     </td>
                     <td>
                         @if($u->pelanggan)
@@ -205,7 +228,7 @@
                     </td>
                     @endif
                     <td style="white-space:nowrap">
-                        <button type="button" class="btn btn-primary btn-xs" onclick="editUser({{ $u->id }}, '{{ addslashes($u->name) }}', '{{ $u->email }}', '{{ $u->phone ?? '' }}', {{ $u->role_id }}, {{ $u->cabang_id ?? 0 }}, {{ $u->is_active ? 1 : 0 }})"><i class="fas fa-edit"></i></button>
+                        <button type="button" class="btn btn-primary btn-xs" onclick="editUser({{ $u->id }}, '{{ addslashes($u->name) }}', '{{ $u->email }}', '{{ $u->phone ?? '' }}', {{ $u->role_id }}, {{ $u->cabang_id ?? 0 }}, {{ $u->is_active ? 1 : 0 }}, '{{ $u->paket ?? 'standar' }}', '{{ $u->is_permanent ? 'permanen' : ($u->login_expires_at ? $u->login_expires_at->format('d/m/Y') : '-') }}')"><i class="fas fa-edit"></i></button>
 
                         @if(auth()->user()->isSuperAdmin() && !$u->isSuperAdmin())
                         <form method="POST" action="{{ route('user-management.toggle-paket', $u) }}" style="display:inline" title="Ubah Paket">
@@ -254,11 +277,24 @@
             </div>
             <div class="form-group">
                 <label>Password Baru (kosongkan jika tidak ganti)</label>
-                <input type="password" name="password" class="form-input" minlength="6" placeholder="Kosongkan jika tidak diubah">
+                <div style="position:relative">
+                    <input type="password" name="password" id="passEdit" class="form-input" minlength="6" placeholder="Kosongkan jika tidak diubah" style="padding-right:44px">
+                    <button type="button" class="toggle-pass" onclick="togglePassword('passEdit', this)" title="Tampilkan / Sembunyikan Password"><i class="far fa-eye"></i></button>
+                </div>
             </div>
             <div class="form-group">
-                <label>No. HP</label>
-                <input type="tel" name="phone" id="editPhone" class="form-input">
+                <label>Konfirmasi Password Baru</label>
+                <div style="position:relative">
+                    <input type="password" name="password_confirmation" id="passEditConf" class="form-input" minlength="6" placeholder="Ulangi password baru" style="padding-right:44px">
+                    <button type="button" class="toggle-pass" onclick="togglePassword('passEditConf', this)" title="Tampilkan / Sembunyikan Password"><i class="far fa-eye"></i></button>
+                </div>
+                <div class="text-xs text-muted" style="margin-top:4px">Kedua password harus sama bila diisi.</div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>No. HP</label>
+                    <input type="tel" name="phone" id="editPhone" class="form-input" placeholder="08xxxxxxxxxx">
+                </div>
             </div>
             <div class="form-row">
                 <div class="form-group">
@@ -290,7 +326,24 @@
                         <option value="enterprise">Enterprise (1 pusat + 3 cabang anak + transfer stok)</option>
                     </select>
                 </div>
-                <div class="form-group"></div>
+                <div class="form-group">
+                    <label>Masa Berlaku Sekarang</label>
+                    <div id="editMasaBerlaku" class="form-input" style="background:#f8fafc;color:#475569">—</div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label><i class="fas fa-key" style="color:var(--primary)"></i> Aktivasi Token (opsional — perpanjang masa berlaku)</label>
+                <select name="activation_code_id" id="editToken" class="form-input">
+                    <option value="">— Tanpa aktivasi token —</option>
+                    @forelse($availableCodes as $c)
+                        <option value="{{ $c->id }}" data-days="{{ $c->durasiDays() }}" data-paket="{{ $c->paket === 'enterprise' ? 'Enterprise' : 'Standard' }}" data-durasi="{{ $c->durasiLabel() }}">
+                            {{ $c->code }} · Paket {{ $c->paket === 'enterprise' ? 'Enterprise' : 'Standard' }} · {{ $c->durasiLabel() }}
+                        </option>
+                    @empty
+                        <option value="" disabled>Tidak ada token tersedia — buat di menu Kode Aktivasi</option>
+                    @endforelse
+                </select>
+                <div class="text-xs text-muted" style="margin-top:4px" id="tokenPreview">Pilih token untuk melihat info masa berlaku yang ditambahkan.</div>
             </div>
             @endif
             <div class="form-group">
@@ -307,8 +360,35 @@
     </div>
 </div>
 
+<style>
+/* Tombol mata (👁) show/hide password — revisi #6 */
+.toggle-pass {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    background: transparent; border: none; cursor: pointer;
+    color: #94a3b8; padding: 4px 6px; border-radius: 6px; font-size: .9rem;
+    transition: all .15s; display: flex; align-items: center; justify-content: center;
+}
+.toggle-pass:hover { color: var(--primary); background: var(--primary-bg); }
+</style>
+
 <script>
-function editUser(id, name, email, phone, roleId, cabangId, isActive) {
+/** Tampilkan / sembunyikan password (ikon mata 👁) */
+function togglePassword(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const icon = btn.querySelector('i');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'far fa-eye-slash';
+        btn.title = 'Sembunyikan Password';
+    } else {
+        input.type = 'password';
+        icon.className = 'far fa-eye';
+        btn.title = 'Tampilkan Password';
+    }
+    input.focus();
+}
+
+function editUser(id, name, email, phone, roleId, cabangId, isActive, paket, expiresText) {
     document.getElementById('editForm').action = '/user-management/' + id;
     document.getElementById('editName').value = name;
     document.getElementById('editEmail').value = email;
@@ -317,13 +397,36 @@ function editUser(id, name, email, phone, roleId, cabangId, isActive) {
     document.getElementById('editCabang').value = cabangId;
     document.getElementById('editActive').checked = isActive == 1;
     @if(auth()->user()->isSuperAdmin())
-    // Fetch paket
-    fetch('/api/user/' + id + '/paket').then(r=>r.json()).then(d=>{
-        document.getElementById('editPaket').value = d.paket || 'standar';
-    });
+    // Paket & masa berlaku langsung dari data baris (tanpa fetch)
+    document.getElementById('editPaket').value = paket || 'standar';
+    var mb = document.getElementById('editMasaBerlaku');
+    if (mb) {
+        mb.textContent = expiresText === 'permanen' ? '∞ Permanen'
+            : (expiresText === '-' ? 'Belum ada — belum pernah diaktivasi' : 's.d. ' + expiresText);
+    }
+    var token = document.getElementById('editToken');
+    if (token) token.value = '';
+    var pv = document.getElementById('tokenPreview');
+    if (pv) pv.textContent = 'Pilih token untuk melihat info masa berlaku yang ditambahkan.';
     @endif
     document.getElementById('editModal').style.display = 'flex';
 }
+
+// Preview hasil token: jelas token mana, paket apa, nambah berapa hari
+document.addEventListener('change', function (e) {
+    if (!e.target || e.target.id !== 'editToken') return;
+    var sel = e.target;
+    var pv = document.getElementById('tokenPreview');
+    if (!pv) return;
+    if (!sel.value) {
+        pv.textContent = 'Pilih token untuk melihat info masa berlaku yang ditambahkan.';
+        return;
+    }
+    var opt = sel.options[sel.selectedIndex];
+    pv.innerHTML = '➕ <strong>' + opt.dataset.durasi + '</strong> · Paket <strong>' + opt.dataset.paket +
+        '</strong> · menambah <strong>' + opt.dataset.days + ' hari</strong>' +
+        ' (ditumpuk ke masa berlaku yang masih aktif; bila expired mulai dari sekarang).';
+});
 function closeModal() {
     document.getElementById('editModal').style.display = 'none';
 }

@@ -40,18 +40,36 @@
         @csrf
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:flex-end">
             <div class="form-group" style="margin:0">
-                <label>Durasi Masa Aktif</label>
+                <label>Masa Berlaku (mengikuti paket)</label>
                 <select name="durasi" class="form-input" required>
-                    <option value="1_bulan">1 Bulan</option>
-                    <option value="3_bulan">3 Bulan</option>
-                    <option value="6_bulan">6 Bulan</option>
-                    <option value="1_tahun" selected>1 Tahun</option>
-                    <option value="permanen">Permanen</option>
+                    <option value="register" selected>Sesuai yang di-Register (paket request cabang)</option>
+                    <option value="standard_1_tahun">Standard — 1 Tahun</option>
+                    <option value="enterprise_1_tahun">Enterprise — 1 Tahun</option>
                 </select>
             </div>
             <div class="form-group" style="margin:0">
                 <label>Jumlah Kode</label>
                 <input type="number" name="jumlah" class="form-input" value="1" min="1" max="100" required>
+            </div>
+            <div class="form-group" style="margin:0">
+                <label>Cabang (opsional — kode terikat cabang)</label>
+                <select name="cabang_id" class="form-input">
+                    <option value="">Umum (tidak terikat cabang)</option>
+                    @foreach(\App\Models\Cabang::orderBy('nama')->get() as $cb)
+                    <option value="{{ $cb->id }}">{{ $cb->nama }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="form-group" style="margin:0">
+                <label>Paket</label>
+                <select name="paket" class="form-input">
+                    <option value="standar">Standar</option>
+                    <option value="enterprise">Enterprise</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin:0">
+                <label>Jumlah User</label>
+                <input type="number" name="jumlah_user" class="form-input" value="1" min="1" max="100">
             </div>
             <div class="form-group" style="margin:0">
                 <label>Catatan (opsional)</label>
@@ -90,11 +108,14 @@
             <thead>
                 <tr>
                     <th>Kode</th>
+                    <th>Cabang</th>
                     <th>Durasi</th>
+                    <th>Paket</th>
+                    <th>User</th>
                     <th>Status</th>
+                    <th>Masa Berlaku</th>
                     <th>Digunakan Oleh</th>
                     <th>Dibuat Pada</th>
-                    <th>Digunakan Pada</th>
                     <th>Aksi</th>
                 </tr>
             </thead>
@@ -107,31 +128,45 @@
                         <button type="button" class="btn btn-xs" onclick="copyCode('{{ $c->code }}', this)" title="Salin kode" style="padding:2px 6px;margin-left:4px"><i class="fas fa-copy"></i></button>
                         @endif
                     </td>
+                    <td>@if($c->cabang){{ $c->cabang->nama }}@else<span style="color:#94a3b8">Umum</span>@endif</td>
                     <td>{{ $c->durasiLabel() }}</td>
+                    <td>{{ ucfirst($c->paket ?? 'standar') }}</td>
+                    <td>{{ $c->jumlah_user ?? 1 }}</td>
                     <td>
                         @if($c->is_used)
                         <span class="badge badge-selesai"><i class="fas fa-check"></i> Terpakai</span>
+                        @elseif($c->statusBerlakuLabel() === 'Aktif')
+                        <span class="badge badge-proses"><i class="fas fa-unlock"></i> Aktif</span>
+                        @elseif($c->statusBerlakuLabel() === 'Expired')
+                        <span class="badge badge-dibatalkan"><i class="fas fa-clock"></i> Expired</span>
                         @else
-                        <span class="badge badge-proses"><i class="fas fa-clock"></i> Tersedia</span>
+                        <span class="badge badge-pending"><i class="fas fa-lock"></i> Nonaktif</span>
                         @endif
+                    </td>
+                    <td style="font-size:.72rem">
+                        {{ $c->mulai_berlaku?->format('d/m/y') ?? '-' }} → {{ $c->berakhir_berlaku?->format('d/m/y') ?? 'Permanen' }}
                     </td>
                     <td>{{ $c->usedBy?->name ?? '-' }}<br><small style="color:#94a3b8">{{ $c->usedBy?->email ?? '' }}</small></td>
                     <td>{{ $c->created_at?->format('d/m/Y H:i') }}</td>
-                    <td>{{ $c->used_at?->format('d/m/Y H:i') ?? '-' }}</td>
-                    <td>
+                    <td style="white-space:nowrap">
+                        <form method="POST" action="{{ route('activation-code.toggle', $c) }}" style="display:inline"
+                              onsubmit="return confirm('{{ $c->status === 'aktif' ? 'Nonaktifkan' : 'Aktifkan' }} kode {{ $c->code }}?')">
+                            @csrf
+                            <button class="btn btn-xs {{ $c->status === 'aktif' ? 'btn-danger' : 'btn-success' }}" title="{{ $c->status === 'aktif' ? 'Nonaktifkan' : 'Aktifkan' }}">
+                                <i class="fas fa-{{ $c->status === 'aktif' ? 'lock' : 'unlock' }}"></i>
+                            </button>
+                        </form>
                         @if(!$c->is_used)
                         <form method="POST" action="{{ route('activation-code.destroy', $c) }}" style="display:inline" onsubmit="return confirm('Hapus kode ini?')">
                             @csrf @method('DELETE')
                             <button class="btn btn-danger btn-xs"><i class="fas fa-trash"></i></button>
                         </form>
-                        @else
-                        <span style="color:#94a3b8;font-size:.72rem">-</span>
                         @endif
                     </td>
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="7" style="text-align:center;padding:30px;color:#94a3b8">
+                    <td colspan="10" style="text-align:center;padding:30px;color:#94a3b8">
                         Belum ada kode aktivasi. Generate kode di atas.
                     </td>
                 </tr>

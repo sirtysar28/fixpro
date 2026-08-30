@@ -231,6 +231,52 @@
     </div>
 </div>
 
+{{-- ====== INVOICE SPAREPART — PUSAT (khusus Super Admin, revisi) ====== --}}
+@if($invoiceStats && auth()->user()->isSuperAdmin())
+<div class="dash-section">
+    <i class="fas fa-file-invoice-dollar"></i>
+    Invoice Sparepart <span style="font-size:.68rem;color:#94a3b8;font-weight:400">— Retail + Grosir + Reseller + Member dalam satu invoice · <a href="{{ route('invoice.create') }}" style="color:var(--primary)">Buat Invoice</a> · <a href="{{ route('invoice.riwayat') }}" style="color:var(--primary)">Riwayat</a> · <a href="{{ route('invoice.piutang') }}" style="color:var(--primary)">Piutang</a></span>
+</div>
+<div class="dash-grid-6">
+    <div class="dash-card">
+        <div class="dc-icon" style="background:var(--primary-bg);color:var(--primary)"><i class="fas fa-cash-register"></i></div>
+        <div class="dc-label">Penjualan Hari Ini</div>
+        <div class="dc-value" style="color:var(--primary)">{{ formatRp($invoiceStats['penjualan_hari_ini']) }}</div>
+        <div class="dc-sub">{{ $invoiceStats['invoice_hari_ini'] }} invoice hari ini</div>
+    </div>
+    <div class="dash-card">
+        <div class="dc-icon" style="background:#ecfdf5;color:#059669"><i class="fas fa-store"></i></div>
+        <div class="dc-label">Retail</div>
+        <div class="dc-value" style="color:#059669">{{ formatRp($invoiceStats['retail']) }}</div>
+        <div class="dc-sub">Pelanggan Umum</div>
+    </div>
+    <div class="dash-card">
+        <div class="dc-icon" style="background:#fef3c7;color:#d97706"><i class="fas fa-boxes"></i></div>
+        <div class="dc-label">Grosir</div>
+        <div class="dc-value" style="color:#d97706">{{ formatRp($invoiceStats['grosir']) }}</div>
+        <div class="dc-sub">Grosir 1/2/3 + Distributor</div>
+    </div>
+    <div class="dash-card">
+        <div class="dc-icon" style="background:#fff7ed;color:#ea580c"><i class="fas fa-people-arrows"></i></div>
+        <div class="dc-label">Reseller</div>
+        <div class="dc-value" style="color:#ea580c">{{ formatRp($invoiceStats['reseller']) }}</div>
+        <div class="dc-sub">Harga reseller</div>
+    </div>
+    <div class="dash-card">
+        <div class="dc-icon" style="background:#fdf2f8;color:#db2777"><i class="fas fa-user-check"></i></div>
+        <div class="dc-label">Member</div>
+        <div class="dc-value" style="color:#db2777">{{ formatRp($invoiceStats['member']) }}</div>
+        <div class="dc-sub">Harga member</div>
+    </div>
+    <div class="dash-card dash-card-urgent">
+        <div class="dc-icon" style="background:#fee2e2;color:#dc2626"><i class="fas fa-hand-holding-usd"></i></div>
+        <div class="dc-label">Piutang / Jatuh Tempo</div>
+        <div class="dc-value" style="color:#dc2626">{{ formatRp($invoiceStats['piutang']) }}</div>
+        <div class="dc-sub"><strong>{{ $invoiceStats['jatuh_tempo'] }}</strong> invoice lewat tempo · masuk {{ formatRp($invoiceStats['pembayaran_masuk']) }}</div>
+    </div>
+</div>
+@endif
+
 {{-- ====== ANALISIS SPAREPART HARI INI ====== --}}
 <div class="dash-section">
     <i class="fas fa-chart-pie"></i>

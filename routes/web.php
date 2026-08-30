@@ -18,6 +18,7 @@ use App\Http\Controllers\CabangController;
 use App\Http\Controllers\BannerIklanController;
 use App\Http\Controllers\UserManagementController;
 use App\Http\Controllers\PenjualanSparepartController;
+use App\Http\Controllers\InvoiceSparepartController;
 use App\Http\Controllers\PembelianController;
 use App\Http\Controllers\AktivitasSparepartController;
 use App\Http\Controllers\TagihanSparepartController;
@@ -320,7 +321,13 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('/admin/activation-requests', [ActivationRequestController::class, 'adminIndex'])->name('admin.activation-requests.index');
         Route::post('/admin/activation-requests/{activationRequest}/approve', [ActivationRequestController::class, 'approve'])->name('admin.activation-requests.approve');
         Route::post('/admin/activation-requests/{activationRequest}/reject', [ActivationRequestController::class, 'reject'])->name('admin.activation-requests.reject');
+        Route::post('/admin/activation-requests/{activationRequest}/proses', [ActivationRequestController::class, 'proses'])->name('admin.activation-requests.proses');
         Route::get('/admin/activation-requests/{activationRequest}', [ActivationRequestController::class, 'show'])->name('admin.activation-requests.show');
+
+        // ===== CONTROL: STATUS AKTIVASI CABANG & ROLE & PERMISSION (Super Admin) =====
+        Route::get('/admin/status-aktivasi', [ActivationRequestController::class, 'statusIndex'])->name('activation.status');
+        Route::get('/control/roles', [ActivationRequestController::class, 'rolesIndex'])->name('control.roles');
+        Route::post('/activation-code/{activationCode}/toggle', [\App\Http\Controllers\ActivationCodeController::class, 'toggle'])->name('activation-code.toggle');
 
         // Bank Accounts (Super Admin only)
         Route::get('/bank-accounts', [BankAccountController::class, 'index'])->name('bank-accounts.index');
@@ -343,6 +350,26 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::post('/admin/languages/{language}/translations', [LanguageController::class, 'updateTranslations'])->name('admin.languages.translations.update');
         Route::post('/admin/languages/keys', [LanguageController::class, 'addKey'])->name('admin.languages.keys.store');
         Route::delete('/admin/languages/keys', [LanguageController::class, 'destroyKey'])->name('admin.languages.keys.destroy');
+    });
+
+    // ===== INVOICE SPAREPART — KHUSUS SUPER ADMIN (pusat): Retail + Grosir 1/2/3 + Reseller + Member + Khusus =====
+    Route::middleware(\App\Http\Middleware\EnsureSuperAdmin::class)->prefix('invoice')->name('invoice.')->group(function () {
+        Route::get('/', [InvoiceSparepartController::class, 'create'])->name('create');
+        Route::get('/api/produk', [InvoiceSparepartController::class, 'apiProduk'])->name('api.produk');
+        Route::get('/api/harga-khusus', [InvoiceSparepartController::class, 'apiHargaKhusus'])->name('api.khusus');
+        Route::post('/', [InvoiceSparepartController::class, 'store'])->name('store');
+        Route::get('/riwayat', [InvoiceSparepartController::class, 'riwayat'])->name('riwayat');
+        Route::get('/pembayaran', [InvoiceSparepartController::class, 'pembayaran'])->name('pembayaran');
+        Route::get('/piutang', [InvoiceSparepartController::class, 'piutang'])->name('piutang');
+        Route::get('/retur', [InvoiceSparepartController::class, 'returIndex'])->name('retur');
+        Route::get('/{invoice}', [InvoiceSparepartController::class, 'show'])->name('show');
+        Route::get('/{invoice}/pdf', [InvoiceSparepartController::class, 'pdf'])->name('pdf');
+        Route::get('/{invoice}/thermal/{size}', [InvoiceSparepartController::class, 'thermal'])->name('thermal');
+        Route::post('/{invoice}/wa', [InvoiceSparepartController::class, 'wa'])->name('wa');
+        Route::post('/{invoice}/void', [InvoiceSparepartController::class, 'void'])->name('void');
+        Route::post('/{invoice}/diskon', [InvoiceSparepartController::class, 'updateDiskon'])->name('diskon');
+        Route::post('/{invoice}/bayar', [InvoiceSparepartController::class, 'bayar'])->name('bayar');
+        Route::post('/{invoice}/retur', [InvoiceSparepartController::class, 'returStore'])->name('retur.store');
     });
 
     // ===== PENJUALAN GROSIR (Admin & Admin Cabang Anak — data TERPISAH per toko) =====

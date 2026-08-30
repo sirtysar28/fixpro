@@ -20,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'active' => \App\Http\Middleware\EnsureIsActive::class,
             'role' => \App\Http\Middleware\CheckRole::class,
+            'superadmin' => \App\Http\Middleware\EnsureSuperAdmin::class,
         ]);
 
         // ===== Fitur #8 & #9 — Webhook publik dari gateway/Fonnte TANPA CSRF =====

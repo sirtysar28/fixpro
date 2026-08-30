@@ -64,6 +64,7 @@ class HargaGrosirController extends Controller
             'harga_grosir2' => 'nullable|numeric|min:0',
             'harga_grosir3' => 'nullable|numeric|min:0',
             'harga_reseller' => 'nullable|numeric|min:0',
+            'harga_member' => 'nullable|numeric|min:0',
             'harga_distributor' => 'nullable|numeric|min:0',
             'min_qty_grosir1' => 'nullable|integer|min:1',
             'min_qty_grosir2' => 'nullable|integer|min:1',
@@ -84,6 +85,7 @@ class HargaGrosirController extends Controller
             'harga_grosir2' => $validated['harga_grosir2'] ?? null,
             'harga_grosir3' => $validated['harga_grosir3'] ?? null,
             'harga_reseller' => $validated['harga_reseller'] ?? null,
+            'harga_member' => $validated['harga_member'] ?? null,
             'harga_distributor' => $validated['harga_distributor'] ?? null,
             'min_qty_grosir1' => $validated['min_qty_grosir1'] ?? 3,
             'min_qty_grosir2' => $validated['min_qty_grosir2'] ?? 6,
@@ -113,7 +115,7 @@ class HargaGrosirController extends Controller
         $cabangId = $gate;
 
         $validated = $request->validate([
-            'level' => 'required|in:grosir1,grosir2,grosir3,reseller,distributor',
+            'level' => 'required|in:grosir1,grosir2,grosir3,reseller,member,distributor',
             'persen' => 'required|numeric|min:0|max:90',
         ]);
 

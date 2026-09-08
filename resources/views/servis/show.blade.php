@@ -18,7 +18,13 @@
             <tr><td class="text-muted" style="padding:8px 0;width:140px">Kode Servis</td><td style="font-weight:700;color:var(--primary)">{{ $servis->kode }}</td></tr>
             <tr><td class="text-muted" style="padding:8px 0">Tanggal</td><td>{{ $servis->tanggal?->format('d/m/Y') }}</td></tr>
             <tr><td class="text-muted" style="padding:8px 0">Cabang</td><td><span class="badge badge-masuk">{{ $servis->cabang?->nama ?? '-' }}</span></td></tr>
-            <tr><td class="text-muted" style="padding:8px 0">Sumber</td><td>@if($servis->sumber === 'user')<span style="color:#2563eb;font-size:.84rem"><i class="fas fa-mobile-alt"></i> Input User</span>@else<span style="color:#64748b;font-size:.84rem"><i class="fas fa-desktop"></i> Input Admin</span>@endif</td></tr>
+            <tr><td class="text-muted" style="padding:8px 0">Sumber</td><td>
+                @if($servis->sumber === 'user')
+                    <span style="color:#2563eb;font-size:.84rem"><i class="fas fa-mobile-alt"></i> Input User</span>
+                @else
+                    <span style="color:#64748b;font-size:.84rem"><i class="fas fa-desktop"></i> Input Admin</span>
+                @endif
+            </td></tr>
             <tr><td class="text-muted" style="padding:8px 0">Status</td><td><span class="badge badge-{{ strtolower($servis->status) }}">{{ $servis->status }}</span></td></tr>
             <tr><td class="text-muted" style="padding:8px 0">Prioritas</td><td><span class="badge badge-{{ strtolower($servis->prioritas) }}">{{ $servis->prioritas }}</span></td></tr>
         </table>
@@ -35,15 +41,38 @@
 
 <div class="grid-2 mt-4">
     <div class="card">
-        <h3 style="font-size:.95rem;margin-bottom:16px"><i class="fas fa-mobile-alt" style="color:var(--accent);margin-right:6px"></i>Perangkat</h3>
+        <h3 style="font-size:.95rem;margin-bottom:16px"><i class="fas fa-mobile-alt" style="color:var(--accent);margin-right:6px"></i>Perangkat & Keamanan</h3>
         <table style="width:100%">
             <tr><td class="text-muted" style="padding:8px 0;width:140px">Perangkat</td><td>{{ $servis->perangkat }}</td></tr>
             <tr><td class="text-muted" style="padding:8px 0">Tipe</td><td>{{ $servis->tipe }}</td></tr>
             <tr><td class="text-muted" style="padding:8px 0">IMEI</td><td>{{ $servis->imei ?? '-' }}</td></tr>
             <tr><td class="text-muted" style="padding:8px 0">Keluhan</td><td>{{ $servis->keluhan }}</td></tr>
             <tr><td class="text-muted" style="padding:8px 0">Teknisi</td><td>{{ $servis->teknisi?->nama ?? '-' }}</td></tr>
+            
+            {{-- TAMBAHAN: Pola & PIN (LocalStorage - Tanpa Database) --}}
+            <tr style="background:#fff7ed; border-top: 1px dashed #fed7aa;">
+                <td class="text-muted" style="padding:8px 0;color:#9a3412;font-weight:600; vertical-align: top;">
+                    <i class="fas fa-lock"></i> Pola / PIN<br>
+                    <span style="font-size:.7rem;font-weight:400;color:#9a3412">(Tersimpan Lokal)</span>
+                </td>
+                <td style="padding:8px 0">
+                    <div style="display:flex;gap:8px;flex-direction:column">
+                        <input type="text" id="local_pola" class="form-input" style="padding:6px 8px;font-size:.85rem" placeholder="Pola (misal: 1234, Pola Z)" oninput="saveLocalSecurity()">
+                        
+                        <div style="display:flex;gap:8px;">
+                            <input type="password" id="local_pin" class="form-input" style="padding:6px 8px;font-size:.85rem; flex:1;" placeholder="PIN (misal: 123456)" onfocus="this.type='text'" onblur="this.type='password'" oninput="saveLocalSecurity()">
+                        </div>
+                        
+                        <span style="font-size:.7rem;color:#9a3412; margin-top: 4px; display:flex; align-items:start; gap:4px;">
+                            <i class="fas fa-shield-alt" style="margin-top:2px;"></i>
+                            <span>Data ini <strong>HANYA</strong> tersimpan di browser komputer ini. Tidak masuk database server (lebih aman dari kebocoran).</span>
+                        </span>
+                    </div>
+                </td>
+            </tr>
         </table>
     </div>
+
     <div class="card">
         <h3 style="font-size:.95rem;margin-bottom:16px"><i class="fas fa-money-bill" style="color:var(--success);margin-right:6px"></i>Biaya</h3>
         <table style="width:100%">
@@ -55,7 +84,6 @@
                         $totalSpShow += (float) ($sp['harga'] ?? 0) * (int) ($sp['qty'] ?? 1);
                     }
                 }
-                // biaya = harga KESELURUHAN (sudah termasuk sparepart). Sparepart TIDAK ditambah lagi.
                 $sisaShow = max(0, (float) $servis->biaya - (float) $servis->dp);
             @endphp
             @if($totalSpShow > 0)
@@ -108,7 +136,7 @@
 @if($servis->catatan)
 <div class="card mt-4">
     <h3 style="font-size:.95rem;margin-bottom:8px">Catatan</h3>
-    <p>{{ $servis->catatan }}</p>
+    <p style="margin:0;white-space:pre-wrap;">{{ $servis->catatan }}</p>
 </div>
 @endif
 
@@ -146,4 +174,27 @@
     </div>
 </div>
 @endif
+
+{{-- SCRIPT KHUSUS: Simpan & Muat Pola/PIN dari LocalStorage --}}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const servisId = '{{ $servis->id }}';
+    const polaInput = document.getElementById('local_pola');
+    const pinInput = document.getElementById('local_pin');
+
+    // 1. Muat data yang sudah tersimpan sebelumnya di browser ini
+    if (polaInput) {
+        polaInput.value = localStorage.getItem('servis_pola_' + servisId) || '';
+    }
+    if (pinInput) {
+        pinInput.value = localStorage.getItem('servis_pin_' + servisId) || '';
+    }
+
+    // 2. Fungsi untuk menyimpan ke LocalStorage setiap kali diketik
+    window.saveLocalSecurity = function() {
+        if (polaInput) localStorage.setItem('servis_pola_' + servisId, polaInput.value);
+        if (pinInput) localStorage.setItem('servis_pin_' + servisId, pinInput.value);
+    };
+});
+</script>
 @endsection

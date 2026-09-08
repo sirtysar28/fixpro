@@ -43,6 +43,8 @@
                 <label>Masa Berlaku (mengikuti paket)</label>
                 <select name="durasi" class="form-input" required>
                     <option value="register" selected>Sesuai yang di-Register (paket request cabang)</option>
+                    <option value="3_bulan">3 Bulan</option>
+                    <option value="6_bulan">6 Bulan</option>
                     <option value="standard_1_tahun">Standard — 1 Tahun</option>
                     <option value="enterprise_1_tahun">Enterprise — 1 Tahun</option>
                 </select>

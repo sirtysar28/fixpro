@@ -40,8 +40,7 @@
                     <label>Alamat</label>
                     <input type="text" name="alamat" class="form-input" id="alamatP" placeholder="Alamat pelanggan">
                 </div>
-                <div id="infoPelanggan" style="display:none;padding:10px;border-radius:8px;background:#f0fdf4;border:1px solid #bbf7d0;font-size:.8rem;color:#166534;margin-bottom:8px">
-                </div>
+                <div id="infoPelanggan" style="display:none;padding:10px;border-radius:8px;background:#f0fdf4;border:1px solid #bbf7d0;font-size:.8rem;color:#166534;margin-bottom:8px"></div>
             </div>
 
             <div class="form-row">
@@ -117,15 +116,77 @@
                     </select>
                 </div>
             </div>
-            <div class="form-group">
-                <label>Teknisi</label>
-                <select name="teknisi_id" class="form-input">
-                    <option value="">-- Pilih Teknisi --</option>
-                    @foreach($teknisis as $t)
-                    <option value="{{ $t->id }}">{{ $t->nama }} ({{ $t->spesialisasi }})</option>
-                    @endforeach
-                </select>
+
+            {{-- Informasi Keamanan & Assign Teknisi --}}
+            <div style="margin-top:16px;padding:16px;border-radius:8px;background:#ffffff;border:1px solid #e2e8f0;">
+                <h3 style="font-size:.9rem;margin-bottom:12px;color:#334155;display:flex;align-items:center;">
+                    <i class="fas fa-user-cog" style="margin-right:6px;color:var(--primary)"></i> Assign Teknisi & Keamanan Perangkat
+                </h3>
+                
+                <div class="form-group">
+                    <label>Teknisi yang Bertanggung Jawab</label>
+                    <select name="teknisi_id" id="teknisiSelect" class="form-input">
+                        <option value="">-- Pilih Teknisi --</option>
+                        @foreach($teknisis as $t)
+                        <option value="{{ $t->id }}" data-wa="{{ $t->no_wa ?? '' }}">
+                            {{ $t->nama }} ({{ $t->spesialisasi }})
+                        </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Input Nomor WA Teknisi (Auto-fill dari dropdown, tapi bisa diedit) --}}
+                <div class="form-group">
+                    <label>No. WA Teknisi</label>
+                    <input type="tel" id="noHpTeknisiManual" name="no_hp_teknisi" class="form-input" placeholder="Otomatis terisi dari pilihan teknisi" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                    <div class="text-xs text-muted" style="margin-top:4px">
+                        <i class="fas fa-info-circle"></i> Otomatis diambil dari data teknisi di atas. Bisa diedit manual jika perlu.
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns: minmax(180px, 1fr) minmax(280px, 1.8fr); gap: 12px; align-items: end; margin-bottom: 12px;">
+                    {{-- Kolom Kiri: PIN / Sandi --}}
+                    <div>
+                        <label>PIN / Sandi</label>
+                        <input type="password" name="pin" id="pinInput" class="form-input" placeholder="Contoh: 123456" onfocus="this.type='text'" onblur="this.type='password'">
+                    </div>
+
+                    {{-- Kolom Kanan: Tombol Kirim + Checkbox Auto --}}
+                    <div style="display:flex; flex-direction:column; gap:8px;">
+                        {{-- Tombol Manual (Selalu terlihat) --}}
+                        <button type="button" id="btnKirimTeknisi" class="btn btn-primary" style="justify-content:center; align-items:center; gap:8px; padding:10px 16px; font-weight:600;" onclick="kirimWaKeTeknisi()">
+                            <i class="fab fa-whatsapp" style="font-size:1.1rem;"></i> Kirim Info ke Teknisi
+                        </button>
+                        
+                        {{-- Checkbox Auto --}}
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:.78rem; color:#64748b; margin:0; padding:6px 8px; background:#f8fafc; border-radius:6px; border:1px solid #e2e8f0;">
+                            <input type="checkbox" id="autoWaTeknisiCheckbox" name="auto_wa_teknisi" value="1" style="width:16px; height:16px; accent-color:#2563eb; cursor:pointer; flex-shrink:0;">
+                            <span>Auto kirim ke WA teknisi saat tombol Simpan diklik</span>
+                        </label>
+                    </div>
+                </div>
+
+                {{-- FITUR CANVAS GAMBAR POLA --}}
+                <div class="form-group" style="margin-top: 4px;">
+                    <label>Gambar Pola Kunci Layar (Opsional)</label>
+                    <div style="display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap;">
+                        <canvas id="patternCanvas" width="150" height="150" style="border: 2px dashed #cbd5e1; border-radius: 8px; background: #f8fafc; cursor: crosshair; touch-action: none;"></canvas>
+                        <div style="flex: 1; min-width: 200px;">
+                            <input type="text" name="pola" id="polaInput" class="form-input" placeholder="Akan terisi otomatis saat menggambar" readonly style="background: #f1f5f9; font-weight: 600; color: var(--primary);">
+                            <div class="text-xs text-muted" style="margin-top: 8px; line-height: 1.4;">
+                                <i class="fas fa-info-circle"></i> Geser mouse/jari pada kotak titik-titik di sebelah kiri.
+                            </div>
+                            <button type="button" onclick="resetPattern()" class="btn btn-secondary btn-xs" style="margin-top: 8px;"><i class="fas fa-undo"></i> Reset Pola</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-xs" style="color:#64748b;margin-top:12px;display:flex;align-items:start;gap:6px;">
+                    <i class="fas fa-shield-alt" style="margin-top:2px;"></i> 
+                    <span><strong>Internal Only:</strong> Data ini ditujukan khusus untuk teknisi. <strong>Jangan dicantumkan di nota/chat pelanggan.</strong></span>
+                </div>
             </div>
+
             <div class="form-row">
                 <div class="form-group">
                     <label>Garansi (hari)</label>
@@ -178,13 +239,13 @@
                 <div id="fotoPreview" style="display:flex;gap:8px;flex-wrap:wrap"></div>
             </div>
 
-            {{-- AUTO KIRIM WA --}}
+            {{-- AUTO KIRIM WA KE PELANGGAN --}}
             <div style="margin-top:20px; padding:14px 16px; background:linear-gradient(135deg, #dcfce7, #f0fdf4); border:1px solid #bbf7d0; border-radius:10px;">
                 <label style="display:flex; align-items:center; gap:12px; cursor:pointer; margin:0;">
                     <input type="checkbox" id="autoWaCheckbox" name="auto_wa" value="1" checked style="width:22px; height:22px; accent-color:#25D366; cursor:pointer;">
                     <div>
                         <div style="font-weight:700; color:#166534; font-size:.95rem; display:flex; align-items:center; gap:8px;">
-                            <i class="fab fa-whatsapp" style="font-size:1.3rem; color:#25D366;"></i> Auto Kirim Nota via WhatsApp
+                            <i class="fab fa-whatsapp" style="font-size:1.3rem; color:#25D366;"></i> Auto Kirim Nota via WhatsApp (Pelanggan)
                         </div>
                         <div class="text-xs" style="color:#15803d; margin-top:2px;">
                             Nota digital akan otomatis dibuka di WhatsApp Web / Aplikasi pelanggan saat Anda klik Simpan.
@@ -203,9 +264,11 @@
             </div>
         </form>
     </div>
+    
     <div>
+        {{-- Card Fitur --}}
         <div class="card">
-            <h3 style="font-size:.95rem;margin-bottom:10px"><i class="fas fa-bolt" style="color:var(--accent);margin-right:6px"></i>Fitur</h3>
+            <h3 style="font-size:.95rem;margin-bottom:10px"><i class="fas fa-bolt" style="color:var(--accent);margin-right:6px"></i> Fitur</h3>
             <ul style="font-size:.84rem;color:#64748b;line-height:2;padding-left:16px">
                 <li><strong style="color:var(--primary)">Pilih pelanggan dari daftar</strong> atau input baru</li>
                 <li>Pelanggan baru otomatis dapat akun user</li>
@@ -214,27 +277,226 @@
                 <li>Estimasi waktu selesai (ETA)</li>
                 <li>Sistem DP & pembayaran</li>
                 <li>Kode servis auto-generate</li>
-                <li><strong style="color:var(--primary)">Assign teknisi</strong></li>
+                <li><strong style="color:#2563eb">Kirim Info ke Teknisi</strong> (Auto-ambil nomor dari data teknisi)</li>
+                <li><strong style="color:var(--accent)">Gambar Pola Layar Interaktif</strong> (Auto-convert ke teks)</li>
                 <li><strong style="color:var(--accent)">Pilih sparepart</strong> (Admin)</li>
                 <li><strong style="color:var(--info)">Upload foto kondisi HP</strong></li>
-                <li><strong style="color:#25D366">Auto Kirim Nota via WhatsApp</strong></li>
+                <li><strong style="color:#25D366">Auto Kirim Nota via WhatsApp</strong> (Pelanggan & Teknisi)</li>
             </ul>
+        </div>
+
+        {{-- Card Data Teknisi Tersedia --}}
+        <div class="card" style="margin-top: 16px;">
+            <h3 style="font-size:.95rem;margin-bottom:12px; display:flex; align-items:center;">
+                <i class="fas fa-users-cog" style="color:var(--primary);margin-right:6px"></i> Data Teknisi Tersedia
+            </h3>
+            <div style="max-height: 250px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
+                <table style="width: 100%; font-size: 0.85rem; border-collapse: collapse;">
+                    <thead style="position: sticky; top: 0; background: #f8fafc; z-index: 1;">
+                        <tr style="border-bottom: 2px solid #e2e8f0;">
+                            <th style="padding: 10px 12px; text-align: left; color: #475569; font-weight: 600;">Nama Teknisi</th>
+                            <th style="padding: 10px 12px; text-align: left; color: #475569; font-weight: 600;">No. WA</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($teknisis as $t)
+                        <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.15s;" onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background='transparent'">
+                            <td style="padding: 10px 12px; color: #334155;">
+                                <div style="font-weight: 600;">{{ $t->nama }}</div>
+                                <div style="font-size: 0.75rem; color: #64748b; margin-top: 2px;">{{ $t->spesialisasi ?? 'Umum' }}</div>
+                            </td>
+                            <td style="padding: 10px 12px; color: #0d9488; font-weight: 600; font-family: monospace; font-size: 0.9rem;">
+                                {{ $t->no_wa ?? '-' }}
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="2" style="padding: 16px; text-align: center; color: #94a3b8; font-style: italic;">
+                                Belum ada data teknisi di database.
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
+// ===== LOGIKA KIRIM KE TEKNISI (MANUAL) =====
+function kirimWaKeTeknisi() {
+    const teknisiSelect = document.getElementById('teknisiSelect');
+    const opt = teknisiSelect.options[teknisiSelect.selectedIndex];
+    
+    // Cek input manual terlebih dahulu, jika kosong pakai dari dropdown
+    const manualHp = document.getElementById('noHpTeknisiManual')?.value.trim();
+    let hpTeknisi = manualHp || opt.dataset.wa;
+
+    const pola = document.getElementById('polaInput').value;
+    const pin = document.getElementById('pinInput').value;
+
+    if (!hpTeknisi) {
+        alert('Nomor WA teknisi tidak ditemukan!\nSilakan pilih teknisi yang memiliki nomor WA, atau isi kolom "No. WA Teknisi" terlebih dahulu.');
+        return;
+    }
+
+    const perangkat = document.getElementById('perangkatInput').value || 'Tidak disebutkan';
+    const kode = document.getElementById('kodeServis').value || 'Menunggu Generate';
+
+    // Format nomor HP ke format internasional (62)
+    let rawHp = hpTeknisi.replace(/[^0-9]/g, '');
+    let finalHp = rawHp.replace(/^(?:\+?62|0)/, '62');
+
+    let pesan = `*🔔 INFO KEAMANAN PERANGKAT BARU*\n`;
+    pesan += `========================\n`;
+    pesan += `Kode Servis: *${kode}*\n`;
+    pesan += `Perangkat: ${perangkat}\n`;
+    pesan += `------------------------\n`;
+    if (pola) pesan += `🔓 *Pola:* ${pola}\n`;
+    if (pin) pesan += `🔑 *PIN:* ${pin}\n`;
+    if (!pola && !pin) pesan += `🔓 *Pola/PIN:* Tidak diisi\n`;
+    pesan += `------------------------\n`;
+    pesan += `Mohon segera diproses. Jangan bagikan info ini ke pihak lain. Terima kasih.`;
+
+    window.open(`https://api.whatsapp.com/send?phone=${finalHp}&text=${encodeURIComponent(pesan)}`, '_blank');
+}
+
+// Auto-fill No. WA Teknisi saat dropdown dipilih (DENGAN PEMBERSIHAN ANGKA)
+document.getElementById('teknisiSelect').addEventListener('change', function() {
+    const selectedOption = this.options[this.selectedIndex];
+    // Bersihkan nomor dari spasi, tanda hubung, atau karakter non-angka lainnya
+    const hpTeknisi = (selectedOption.getAttribute('data-wa') || '').replace(/[^0-9]/g, '');
+    const manualInput = document.getElementById('noHpTeknisiManual');
+    
+    if (manualInput) {
+        manualInput.value = hpTeknisi;
+    }
+});
+// ===== AKHIR LOGIKA KIRIM KE TEKNISI =====
+
+
+// ===== LOGIKA CANVAS GAMBAR POLA =====
+const canvas = document.getElementById('patternCanvas');
+const ctx = canvas.getContext('2d');
+const points = [];
+const spacing = 50;
+const offset = 25;
+let isDrawing = false;
+let currentPath = [];
+
+for(let r = 0; r < 3; r++) {
+    for(let c = 0; c < 3; c++) {
+        points.push({ x: offset + c * spacing, y: offset + r * spacing, id: (r * 3 + c) + 1 });
+    }
+}
+
+function drawPattern() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (currentPath.length > 0) {
+        ctx.beginPath();
+        ctx.moveTo(points[currentPath[0] - 1].x, points[currentPath[0] - 1].y);
+        for(let i = 1; i < currentPath.length; i++) {
+            ctx.lineTo(points[currentPath[i] - 1].x, points[currentPath[i] - 1].y);
+        }
+        ctx.strokeStyle = '#0d9488';
+        ctx.lineWidth = 4;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+    }
+    points.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
+        ctx.fillStyle = currentPath.includes(p.id) ? '#0d9488' : '#cbd5e1';
+        ctx.fill();
+        ctx.fillStyle = currentPath.includes(p.id) ? '#fff' : '#64748b';
+        ctx.font = '10px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(p.id, p.x, p.y + 1);
+    });
+}
+
+function getPointFromEvent(e) {
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const cx = (clientX - rect.left) * scaleX;
+    const cy = (clientY - rect.top) * scaleY;
+
+    for(let p of points) {
+        const dist = Math.sqrt((cx - p.x) ** 2 + (cy - p.y) ** 2);
+        if (dist < 20) return p;
+    }
+    return null;
+}
+
+function startDrawing(e) {
+    e.preventDefault();
+    isDrawing = true;
+    currentPath = [];
+    const p = getPointFromEvent(e);
+    if (p) {
+        currentPath.push(p.id);
+        updatePolaInput();
+    }
+    drawPattern();
+}
+
+function moveDrawing(e) {
+    if (!isDrawing) return;
+    e.preventDefault();
+    const p = getPointFromEvent(e);
+    if (p && !currentPath.includes(p.id)) {
+        currentPath.push(p.id);
+        updatePolaInput();
+        drawPattern();
+    }
+}
+
+function endDrawing(e) {
+    if (!isDrawing) return;
+    isDrawing = false;
+    drawPattern();
+}
+
+function updatePolaInput() {
+    const polaInput = document.getElementById('polaInput');
+    if (currentPath.length > 0) {
+        polaInput.value = "Pola: " + currentPath.join(" - ");
+    } else {
+        polaInput.value = "";
+    }
+}
+
+function resetPattern() {
+    currentPath = [];
+    document.getElementById('polaInput').value = "";
+    drawPattern();
+}
+
+canvas.addEventListener('mousedown', startDrawing);
+canvas.addEventListener('mousemove', moveDrawing);
+canvas.addEventListener('mouseup', endDrawing);
+canvas.addEventListener('mouseleave', endDrawing);
+canvas.addEventListener('touchstart', startDrawing, { passive: false });
+canvas.addEventListener('touchmove', moveDrawing, { passive: false });
+canvas.addEventListener('touchend', endDrawing);
+drawPattern();
+// ===== AKHIR LOGIKA CANVAS POLA =====
+
+
 // Pilih pelanggan dari dropdown
 function pilihPelanggan(select) {
     const opt = select.options[select.selectedIndex];
     const infoEl = document.getElementById('infoPelanggan');
-
     if (opt.value) {
         document.getElementById('noHp').value = opt.dataset.noHp || '';
         document.getElementById('namaP').value = opt.dataset.nama || '';
         document.getElementById('alamatP').value = opt.dataset.alamat || '';
-
-        // Tampilkan info kalau pelanggan punya akun user
         if (opt.dataset.userEmail) {
             infoEl.style.display = 'block';
             infoEl.innerHTML = '<i class="fas fa-check-circle"></i> Pelanggan ini sudah punya akun user: <strong>' + opt.dataset.userEmail + '</strong>';
@@ -246,12 +508,10 @@ function pilihPelanggan(select) {
             infoEl.style.color = '#854d0e';
         }
     } else {
-        // Reset kalau pilih "Input Manual"
         infoEl.style.display = 'none';
     }
 }
 
-// Auto-fill dari No HP (backup kalau user ketik manual)
 document.getElementById('noHp').addEventListener('blur', function() {
     const hp = this.value.trim();
     if (hp.length >= 10) {
@@ -266,7 +526,6 @@ document.getElementById('noHp').addEventListener('blur', function() {
     }
 });
 
-// ===== Master Data Tipe HP =====
 let merkLoaded = false;
 function loadMerks() {
     if (merkLoaded) return;
@@ -274,7 +533,6 @@ function loadMerks() {
         .then(r => r.json())
         .then(data => {
             const select = document.getElementById('merkHpSelect');
-            // Get unique merks
             const merks = [...new Set(data.map(d => d.merk))].sort();
             merks.forEach(merk => {
                 const opt = document.createElement('option');
@@ -282,7 +540,6 @@ function loadMerks() {
                 opt.textContent = merk;
                 select.appendChild(opt);
             });
-            // Store full data for tipe lookup
             window._tipeHpData = data;
             merkLoaded = true;
         })
@@ -294,16 +551,11 @@ function loadTipeHp() {
     const merk = document.getElementById('merkHpSelect').value;
     const tipeSelect = document.getElementById('tipeHpSelect');
     tipeSelect.innerHTML = '<option value="">-- Pilih Tipe --</option>';
-
     if (!merk || !window._tipeHpData) {
         tipeSelect.innerHTML = '<option value="">-- Pilih Merk dulu --</option>';
         return;
     }
-
-    const types = window._tipeHpData
-        .filter(d => d.merk === merk)
-        .sort((a, b) => a.tipe.localeCompare(b.tipe));
-
+    const types = window._tipeHpData.filter(d => d.merk === merk).sort((a, b) => a.tipe.localeCompare(b.tipe));
     types.forEach(t => {
         const opt = document.createElement('option');
         opt.value = t.tipe;
@@ -311,15 +563,9 @@ function loadTipeHp() {
         opt.dataset.merk = t.merk;
         tipeSelect.appendChild(opt);
     });
-
-    // Auto-set OS tipe based on merk
     const tipeOs = document.querySelector('select[name="tipe"]');
     const appleMerks = ['Apple', 'iPhone', 'iPad'];
-    if (appleMerks.includes(merk)) {
-        tipeOs.value = 'Apple';
-    } else {
-        tipeOs.value = 'Android';
-    }
+    tipeOs.value = appleMerks.includes(merk) ? 'Apple' : 'Android';
 }
 
 function autoFillPerangkat() {
@@ -331,7 +577,6 @@ function autoFillPerangkat() {
     }
 }
 
-// ===== Kalkulasi Total Otomatis =====
 function parseRupiah(val) {
     if (!val) return 0;
     return parseInt(String(val).replace(/[^0-9]/g, '')) || 0;
@@ -348,11 +593,9 @@ function calculateTotal() {
     document.getElementById('totalBayarDisplay').textContent = formatRupiahDisplay(sisa);
 }
 
-// Event listener untuk perubahan biaya, dp, dan sparepart
 document.getElementById('biayaInput')?.addEventListener('input', calculateTotal);
 document.getElementById('dpInput')?.addEventListener('input', calculateTotal);
 
-// Sparepart management
 function updateSparepartPrice(select) {
     const option = select.options[select.selectedIndex];
     const row = select.closest('.sparepart-row');
@@ -366,7 +609,6 @@ function addSparepartRow() {
     const container = document.getElementById('sparepartContainer');
     const firstRow = container.querySelector('.sparepart-row');
     const newRow = firstRow.cloneNode(true);
-    // Reset & rebuild the searchable sparepart widget on the cloned row
     const clonedSelect = newRow.querySelector('.sparepart-select');
     if (clonedSelect && window.teardownSparepart) {
         teardownSparepart(clonedSelect);
@@ -391,7 +633,6 @@ function removeSparepartRow(btn) {
     }
 }
 
-// Foto preview
 document.querySelector('input[name="foto[]"]').addEventListener('change', function(e) {
     const preview = document.getElementById('fotoPreview');
     preview.innerHTML = '';
@@ -404,7 +645,6 @@ document.querySelector('input[name="foto[]"]').addEventListener('change', functi
     });
 });
 
-// ===== SERVICE PRICE AUTO-COMPLETE =====
 let priceSearchTimer = null;
 function searchServicePrice(query) {
     clearTimeout(priceSearchTimer);
@@ -455,41 +695,86 @@ function searchServicePrice(query) {
     }, 300);
 }
 
-// ===== CRITICAL: Strip empty sparepart inputs before submit + AUTO WA =====
+// ===== AUTO WA (PELANGGAN & TEKNISI) SAAT SIMPAN =====
 document.querySelectorAll('form[method="POST"]').forEach(form => {
     form.addEventListener('submit', function(e) {
-        // ===== AUTO KIRIM WA =====
+        // 1. AUTO WA PELANGGAN
         const autoWA = document.getElementById('autoWaCheckbox')?.checked;
         if (autoWA) {
-            const noHp = document.getElementById('noHp').value.replace(/^0/, '62').replace(/[^0-9]/g, '');
-            const nama = document.getElementById('namaP').value;
-            const kodeServis = document.getElementById('kodeServis')?.value || 'Menunggu Generate';
-            const perangkat = document.getElementById('perangkatInput').value;
-            const keluhan = document.getElementById('keluhanInput').value;
-            const biaya = document.getElementById('biayaInput').value;
-            const dp = document.getElementById('dpInput').value;
-            const sisa = document.getElementById('totalBayarDisplay').textContent;
-            const eta = document.querySelector('input[name="eta"]').value;
+            let rawNoHp = document.getElementById('noHp')?.value.replace(/[^0-9]/g, '') || '';
+            const noHp = rawNoHp.replace(/^(?:\+?62|0)/, '62');
             
-            let pesan = `*NOTA SERVIS DIGITAL*\n`;
-            pesan += `========================\n`;
-            pesan += `Kode Servis: *${kodeServis}*\n`;
-            pesan += `Pelanggan: ${nama}\n`;
-            pesan += `No. HP: ${document.getElementById('noHp').value}\n`;
-            pesan += `Perangkat: ${perangkat}\n`;
-            pesan += `------------------------\n`;
-            pesan += `*Keluhan:*\n${keluhan}\n\n`;
-            pesan += `*Rincian Biaya:*\n`;
-            pesan += `Total Biaya: ${biaya}\n`;
-            pesan += `DP Dibayar: ${dp}\n`;
-            pesan += `Sisa Pembayaran: *${sisa}*\n`;
-            if(eta) pesan += `Estimasi Selesai: ${eta}\n`;
-            pesan += `========================\n`;
-            pesan += `Terima kasih telah mempercayakan servis Anda kepada kami. Anda dapat memantau status servis menggunakan kode di atas.`;
+            // Validasi: Pastikan nomor HP valid (minimal 10 digit setelah kode negara)
+            if (noHp && noHp.length >= 10) {
+                const nama = document.getElementById('namaP')?.value || '';
+                const kodeServis = document.getElementById('kodeServis')?.value || 'Menunggu Generate';
+                const perangkat = document.getElementById('perangkatInput')?.value || '';
+                const keluhan = document.getElementById('keluhanInput')?.value || '';
+                const biaya = document.getElementById('biayaInput')?.value || '0';
+                const dp = document.getElementById('dpInput')?.value || '0';
+                const sisa = document.getElementById('totalBayarDisplay')?.textContent || 'Rp 0';
+                const eta = document.querySelector('input[name="eta"]')?.value || '';
+                
+                let pesan = `*NOTA SERVIS DIGITAL*\n`;
+                pesan += `========================\n`;
+                pesan += `Kode Servis: *${kodeServis}*\n`;
+                pesan += `Pelanggan: ${nama}\n`;
+                pesan += `No. HP: ${document.getElementById('noHp')?.value}\n`;
+                pesan += `Perangkat: ${perangkat}\n`;
+                pesan += `------------------------\n`;
+                pesan += `*Keluhan:*\n${keluhan}\n\n`;
+                pesan += `*Rincian Biaya:*\n`;
+                pesan += `Total Biaya: ${biaya}\n`;
+                pesan += `DP Dibayar: ${dp}\n`;
+                pesan += `Sisa Pembayaran: *${sisa}*\n`;
+                if(eta) pesan += `Estimasi Selesai: ${eta}\n`;
+                pesan += `========================\n`;
+                pesan += `Terima kasih telah mempercayakan servis Anda kepada kami. Anda dapat memantau status servis menggunakan kode di atas.`;
                           
-            // Buka WhatsApp Web di tab baru bersamaan dengan submit form
-            const waUrl = `https://api.whatsapp.com/send?phone=${noHp}&text=${encodeURIComponent(pesan)}`;
-            window.open(waUrl, '_blank');
+                const waUrl = `https://api.whatsapp.com/send?phone=${noHp}&text=${encodeURIComponent(pesan)}`;
+                
+                // PENTING: Buka secara sinkron (TANPA setTimeout) agar tidak diblokir browser
+                window.open(waUrl, '_blank');
+            } else {
+                console.warn('Nomor HP pelanggan tidak valid untuk kirim WA.');
+            }
+        }
+
+        // 2. AUTO WA TEKNISI
+        const autoWaTeknisi = document.getElementById('autoWaTeknisiCheckbox')?.checked;
+        if (autoWaTeknisi) {
+            const teknisiSelect = document.getElementById('teknisiSelect');
+            const opt = teknisiSelect?.options[teknisiSelect.selectedIndex];
+            
+            const manualHp = document.getElementById('noHpTeknisiManual')?.value.trim();
+            let hpTeknisi = manualHp || opt?.dataset.wa;
+            
+            if (hpTeknisi) {
+                let rawHp = hpTeknisi.replace(/[^0-9]/g, '');
+                let finalHp = rawHp.replace(/^(?:\+?62|0)/, '62');
+
+                // Validasi nomor WA teknisi
+                if (finalHp && finalHp.length >= 10) {
+                    const pola = document.getElementById('polaInput')?.value || '';
+                    const pin = document.getElementById('pinInput')?.value || '';
+                    const perangkat = document.getElementById('perangkatInput')?.value || 'Tidak disebutkan';
+                    const kode = document.getElementById('kodeServis')?.value || 'Menunggu Generate';
+
+                    let pesan = `*🔔 INFO KEAMANAN PERANGKAT BARU*\n`;
+                    pesan += `========================\n`;
+                    pesan += `Kode Servis: *${kode}*\n`;
+                    pesan += `Perangkat: ${perangkat}\n`;
+                    pesan += `------------------------\n`;
+                    if (pola) pesan += `🔓 *Pola:* ${pola}\n`;
+                    if (pin) pesan += `🔑 *PIN:* ${pin}\n`;
+                    if (!pola && !pin) pesan += `🔓 *Pola/PIN:* Tidak diisi\n`;
+                    pesan += `------------------------\n`;
+                    pesan += `Mohon segera diproses. Jangan bagikan info ini ke pihak lain. Terima kasih.`;
+
+                    // PENTING: Buka secara sinkron (TANPA setTimeout) agar tidak diblokir browser
+                    window.open(`https://api.whatsapp.com/send?phone=${finalHp}&text=${encodeURIComponent(pesan)}`, '_blank');
+                }
+            }
         }
 
         // Remove name from sparepart selects/inputs yang kosong
@@ -499,7 +784,6 @@ document.querySelectorAll('form[method="POST"]').forEach(form => {
                 sel.removeAttribute('name');
             }
         });
-        // Hapus sparepart_prices[] yang pairing-nya kosong
         this.querySelectorAll('.sparepart-price').forEach(inp => {
             const row = inp.closest('.sparepart-row');
             if (row) {
@@ -510,7 +794,6 @@ document.querySelectorAll('form[method="POST"]').forEach(form => {
                 }
             }
         });
-        // Hapus sparepart_qtys[] yang pairing-nya kosong
         this.querySelectorAll('.sparepart-qty').forEach(inp => {
             const row = inp.closest('.sparepart-row');
             if (row) {

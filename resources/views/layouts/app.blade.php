@@ -542,9 +542,11 @@
             <a href="{{ route('teknisi.index') }}" class="{{ request()->routeIs('teknisi.*') ? 'active' : '' }}">
                 <i class="fas fa-wrench"></i> Teknisi
             </a>
+            @if(auth()->user()->isSuperAdmin())
             <a href="{{ route('tipe-hp.index') }}" class="{{ request()->routeIs('tipe-hp.*') ? 'active' : '' }}">
                 <i class="fas fa-mobile-alt"></i> Master Tipe HP
             </a>
+            @endif
             <a href="{{ route('stok.index') }}" class="{{ request()->routeIs('stok.*') ? 'active' : '' }}">
                 <i class="fas fa-boxes"></i> Stok Barang
             </a>
@@ -556,6 +558,18 @@
             </a>
             <a href="{{ route('penjualan-sparepart.index') }}" class="{{ request()->routeIs('penjualan-sparepart.*') ? 'active' : '' }}">
                 <i class="fas fa-shopping-cart"></i> Penjualan Sparepart
+            </a>
+            <a href="{{ route('aktivitas-sparepart.index') }}" class="{{ request()->routeIs('aktivitas-sparepart.*') ? 'active' : '' }}">
+                <i class="fas fa-exchange-alt"></i> Aktivitas Sparepart
+            </a>
+            <a href="{{ route('jualbeli.index') }}" class="{{ request()->routeIs('jualbeli.*') ? 'active' : '' }}">
+                <i class="fas fa-mobile-alt"></i> Jual Beli HP Second
+            </a>
+            <a href="{{ route('pembelian.index') }}" class="{{ request()->routeIs('pembelian.*') ? 'active' : '' }}">
+                <i class="fas fa-truck-loading"></i> Pembelian Supplier
+            </a>
+            <a href="{{ route('kas.index') }}" class="{{ request()->routeIs('kas.*') ? 'active' : '' }}">
+                <i class="fas fa-cash-register"></i> Kas Harian
             </a>
             <div class="nav-label" style="margin-top: 8px;">Penjualan Grosir</div>
             <a href="{{ route('grosir.dashboard') }}" class="{{ request()->routeIs('grosir.dashboard') ? 'active' : '' }}">
@@ -591,34 +605,6 @@
             <a href="{{ route('tagihan-sparepart.index') }}" class="{{ request()->routeIs('tagihan-sparepart.*') ? 'active' : '' }}">
                 <i class="fas fa-file-invoice"></i> Tagihan Sparepart
             </a>
-            <a href="{{ route('jualbeli.index') }}" class="{{ request()->routeIs('jualbeli.*') ? 'active' : '' }}">
-                <i class="fas fa-mobile-alt"></i> Jual Beli HP
-            </a>
-            <a href="{{ route('pembelian.index') }}" class="{{ request()->routeIs('pembelian.*') ? 'active' : '' }}">
-                <i class="fas fa-truck-loading"></i> Pembelian Supplier
-            </a>
-            <a href="{{ route('aktivitas-sparepart.index') }}" class="{{ request()->routeIs('aktivitas-sparepart.*') ? 'active' : '' }}">
-                <i class="fas fa-exchange-alt"></i> Aktivitas Sparepart
-            </a>
-            <a href="{{ route('kas.index') }}" class="{{ request()->routeIs('kas.*') ? 'active' : '' }}">
-                <i class="fas fa-cash-register"></i> Kas Harian
-            </a>
-            <a href="{{ route('payment.select') }}" class="{{ request()->routeIs('payment.*') ? 'active' : '' }}">
-                <i class="fas fa-credit-card"></i> {{ t('menu.online_payment','Pembayaran Online') }}
-            </a>
-            <a href="{{ route('subscription.index') }}" class="{{ request()->routeIs('subscription.*') ? 'active' : '' }}">
-                <i class="fas fa-star"></i> {{ t('subscription.subscription','Paket Berlangganan') }}
-                @php $ss = auth()->user()->subscriptionSummary(); @endphp
-                @if(!auth()->user()->isSuperAdmin() && $ss && ($ss['days_left'] ?? null) !== null && ($ss['days_left'] ?? 99) <= 30)
-                <span style="background:var(--warning);color:#fff;font-size:.6rem;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:auto">!</span>
-                @endif
-            </a>
-            <a href="{{ route('sync.index') }}" class="{{ request()->routeIs('sync.*') ? 'active' : '' }}">
-                <i class="fas fa-sync-alt"></i> Riwayat Sinkronisasi
-            </a>
-            <a href="{{ route('whatsapp.index') }}" class="{{ request()->routeIs('whatsapp.*') ? 'active' : '' }}">
-                <i class="fab fa-whatsapp"></i> {{ t('menu.whatsapp_web','WhatsApp Web') }}
-            </a>
 
             {{-- Sistem: Admin Cabang hanya Pengaturan, Kelola Akun, Multi Cabang --}}
             {{-- Sistem: Super Admin mendapat semua menu --}}
@@ -647,6 +633,9 @@
             <a href="{{ route('banner-iklan.index') }}" class="{{ request()->routeIs('banner-iklan.*') ? 'active' : '' }}">
                 <i class="fas fa-ad"></i> Banner Iklan
             </a>
+            <a href="{{ route('whatsapp.index') }}" class="{{ request()->routeIs('whatsapp.*') ? 'active' : '' }}">
+                <i class="fab fa-whatsapp"></i> {{ t('menu.whatsapp_web','WhatsApp Web') }}
+            </a>
             @endif
 
             {{-- Multi Cabang: Super Admin & Enterprise Admin --}}
@@ -659,6 +648,25 @@
                 <i class="fas fa-users-cog"></i> Kelola Akun
             </a>
             @endif
+            @endif
+
+            {{-- Pembayaran Online: semua admin --}}
+            <a href="{{ route('payment.select') }}" class="{{ request()->routeIs('payment.*') ? 'active' : '' }}">
+                <i class="fas fa-credit-card"></i> {{ t('menu.online_payment','Pembayaran Online') }}
+            </a>
+
+            {{-- Paket Berlangganan & Sinkronisasi: non-Super Admin (Super Admin punya di group Control) --}}
+            @if(!auth()->user()->isSuperAdmin())
+            <a href="{{ route('subscription.index') }}" class="{{ request()->routeIs('subscription.*') ? 'active' : '' }}">
+                <i class="fas fa-star"></i> {{ t('subscription.subscription','Paket Berlangganan') }}
+                @php $ss = auth()->user()->subscriptionSummary(); @endphp
+                @if($ss && ($ss['days_left'] ?? null) !== null && ($ss['days_left'] ?? 99) <= 30)
+                <span style="background:var(--warning);color:#fff;font-size:.6rem;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:auto">!</span>
+                @endif
+            </a>
+            <a href="{{ route('sync.index') }}" class="{{ request()->routeIs('sync.*') ? 'active' : '' }}">
+                <i class="fas fa-sync-alt"></i> Riwayat Sinkronisasi Offline
+            </a>
             @endif
 
             {{-- SUPER ADMIN ONLY: CONTROL (Request Aktivasi, Kode, Status, Paket, User, Role, Audit) --}}
@@ -742,8 +750,8 @@
             </a>
             @endif
 
-            @if(auth()->user()->isAdmin() || auth()->user()->isStaff())
-            {{-- ==================== ADMIN / STAFF - Layanan --}}
+            @if(auth()->user()->isSuperAdmin())
+            {{-- ==================== LAYANAN — KHUSUS SUPER ADMIN ==================== --}}
             <div class="nav-label" style="margin-top: 8px;">Layanan</div>
             <a href="{{ route('my-service.create') }}" class="{{ request()->routeIs('my-service.create') ? 'active' : '' }}">
                 <i class="fas fa-user-plus"></i> Daftar Servis (User)
@@ -1057,6 +1065,10 @@
             @if(session('error'))
             <div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> {{ session('error') }}</div>
             @endif
+
+            {{-- ====== BANNER PROMO — tampil di layout seluruh fitur (update hanya Super Admin) ====== --}}
+            @include('layouts.partials.promo-banner')
+
             @yield('content')
         </div>
     </div>
@@ -1118,7 +1130,9 @@
                 <a href="{{ route('kas.index') }}" class="sheet-link"><i class="fas fa-cash-register"></i> Kas Harian</a>
                 <a href="{{ route('payment.select') }}" class="sheet-link"><i class="fas fa-credit-card"></i> Pembayaran</a>
                 <a href="{{ route('subscription.index') }}" class="sheet-link"><i class="fas fa-star"></i> Langganan</a>
+                @if(auth()->user()->isSuperAdmin())
                 <a href="{{ route('whatsapp.index') }}" class="sheet-link"><i class="fab fa-whatsapp"></i> WhatsApp</a>
+                @endif
                 <a href="{{ route('settings.index') }}" class="sheet-link"><i class="fas fa-cog"></i> Pengaturan</a>
                 @if(auth()->user()->isSuperAdmin())
                 <a href="{{ route('sync.index') }}" class="sheet-link"><i class="fas fa-sync-alt"></i> Sinkronisasi</a>

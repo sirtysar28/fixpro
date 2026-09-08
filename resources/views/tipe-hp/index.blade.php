@@ -15,11 +15,12 @@
         <div class="form-row">
             <div class="form-group">
                 <label>Merk *</label>
-                <input type="text" name="merk" class="form-input" placeholder="Apple, Samsung, Xiaomi..." required list="merkList">
+                <input type="text" name="merk" class="form-input" placeholder="Apple, Samsung, Xiaomi, Redmi..." required list="merkList">
                 <datalist id="merkList">
                     <option value="Apple">
                     <option value="Samsung">
                     <option value="Xiaomi">
+                    <option value="Redmi">
                     <option value="Oppo">
                     <option value="Vivo">
                     <option value="Realme">
@@ -30,18 +31,13 @@
                     <option value="OnePlus">
                     <option value="Huawei">
                     <option value="Sony">
-                    <option value="LG">
-                    <option value="Motorola">
-                    <option value="Lenovo">
-                    <option value="Advan">
-                    <option value="Evercoss">
-                    <option value="Polytron">
-                    <option value="Lainnya">
+                   <option value="Motorola">
+                   
                 </datalist>
             </div>
             <div class="form-group">
                 <label>Tipe / Model *</label>
-                <input type="text" name="tipe" class="form-input" placeholder="iPhone 13 Pro Max, Samsung A54..." required>
+                <input type="text" name="tipe" class="form-input" placeholder="iPhone 13 Pro Max, Samsung A54, Redmi Note 12..." required>
             </div>
         </div>
         <div class="form-group">

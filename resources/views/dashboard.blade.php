@@ -11,10 +11,6 @@
     /* dash-grid-21 */
     .dash-grid-21 { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-bottom: 18px; }
     .dash-grid-12 { display: grid; grid-template-columns: 1fr 2fr; gap: 14px; margin-bottom: 18px; }
-    .dash-banner-scroll { display: flex; gap: 16px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 18px; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
-    .dash-banner-scroll::-webkit-scrollbar { height: 4px; }
-    .dash-banner-scroll::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
-    .dash-banner-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
 
     .dash-card {
         background: #fff;
@@ -141,26 +137,6 @@
     body.dark .dash-footer-item .df-label { color: #64748b; }
     body.dark .dash-footer-item .df-value { color: #e2e8f0; }
     body.dark .dash-footer-live .live-dot { background: #4ade80; }
-    .dash-banner-card { min-width: 240px; max-width: 260px; scroll-snap-align: start; background: #fff; border-radius: 16px; overflow: hidden; border: 1px solid #e2e8f0; transition: transform .2s, box-shadow .2s; flex-shrink: 0; }
-    .dash-banner-card:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,.08); }
-    .dash-banner-card img { width: 100%; aspect-ratio: 3/4; object-fit: cover; display: block; }
-    .dash-banner-card .bc-body { padding: 16px 18px 18px; }
-    .dash-banner-card .bc-title { font-size: .92rem; font-weight: 800; color: #0f172a; line-height: 1.3; margin-bottom: 8px; }
-    .dash-banner-card .bc-desc { font-size: .76rem; color: #475569; line-height: 1.65; margin-bottom: 14px; }
-    .dash-banner-card .bc-desc ul, .dash-banner-card .bc-desc ol { margin: 4px 0; padding-left: 16px; }
-    .dash-banner-card .bc-desc li { margin-bottom: 3px; }
-    .dash-banner-card .bc-desc strong { color: #1e293b; }
-    .dash-banner-card .bc-btns { display: flex; gap: 8px; }
-    .dash-banner-card .bc-btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 10px 16px; color: #fff; border-radius: 10px; font-size: .78rem; font-weight: 700; text-decoration: none; transition: all .2s; flex: 1; }
-    .dash-banner-card .bc-btn:hover { opacity: .85; }
-    .dash-banner-card .bc-btn-primary { background: var(--primary); }
-    .dash-banner-card .bc-btn-wa { background: #25D366; }
-    body.dark .dash-banner-card { background: #1e293b; border-color: #334155; }
-    body.dark .dash-banner-card .bc-title { color: #e2e8f0; }
-    body.dark .dash-banner-card .bc-desc { color: #94a3b8; }
-    body.dark .dash-banner-card .bc-desc strong { color: #cbd5e1; }
-    body.dark .dash-banner-scroll::-webkit-scrollbar-track { background: #1e293b; }
-    body.dark .dash-banner-scroll::-webkit-scrollbar-thumb { background: #475569; }
     .banner-desc p { margin: 0 0 4px; }
     .banner-desc ul, .banner-desc ol { margin: 2px 0; padding-left: 16px; }
     .banner-desc li { margin-bottom: 2px; }
@@ -472,36 +448,7 @@
     </div>
 </div>
 
-{{-- ====== BANNER IKLAN (Portrait Cards, Horizontal Scroll) ====== --}}
-@if($banners->count() > 0)
-<div class="dash-section">
-    <i class="fas fa-ad" style="color:var(--primary)"></i>
-    Info & Promo
-</div>
-<div class="dash-banner-scroll">
-    @foreach($banners as $banner)
-    <div class="dash-banner-card">
-        @if($banner->gambar)
-        <img src="{{ str_starts_with($banner->gambar, 'http') ? $banner->gambar : Storage::url($banner->gambar) }}" alt="{{ $banner->judul }}">
-        @endif
-        <div class="bc-body">
-            <div class="bc-title">{{ $banner->judul }}</div>
-            @if($banner->deskripsi)
-            <div class="bc-desc">{!! $banner->deskripsi !!}</div>
-            @endif
-            <div class="bc-btns">
-                <a href="{{ $banner->link ?: '#' }}" target="_blank" class="bc-btn bc-btn-primary">
-                    <i class="fas fa-rocket"></i> Daftar Sekarang!
-                </a>
-                <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $settings['telp'] ?? '6281234567890') }}?text=Halo%20FixPro,%20saya%20tertarik%20dengan%20{{ urlencode($banner->judul) }}" target="_blank" class="bc-btn bc-btn-wa">
-                    <i class="fab fa-whatsapp"></i> WhatsApp
-                </a>
-            </div>
-        </div>
-    </div>
-    @endforeach
-</div>
-@endif
+{{-- ====== BANNER IKLAN — sekarang tampil di layout semua halaman (layouts/partials/promo-banner) ====== --}}
 
 {{-- ====== STOK ALERTS (AJAX + PAGINATION) ====== --}}
 <div id="stokAlertsSection" style="margin-bottom:18px">

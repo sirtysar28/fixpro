@@ -5,19 +5,88 @@
     $showLogin = !$showRegister;
 @endphp
 
+<!-- Elegant Promo Marquee Styles (GREEN THEME & SLOWER READABILITY) -->
+<style>
+.promo-marquee-wrap {
+    background: linear-gradient(90deg, #f0fdf4 0%, #dcfce7 50%, #f0fdf4 100%);
+    border: 1px solid #bbf7d0;
+    border-left: 4px solid #16a34a;
+    border-radius: 8px;
+    padding: 10px 16px;
+    margin-bottom: 16px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 2px 8px rgba(22, 163, 74, 0.1);
+}
+.promo-marquee-text {
+    display: inline-block;
+    white-space: nowrap;
+    animation: marquee-green 22s linear infinite;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #14532d;
+    letter-spacing: 0.2px;
+}
+.promo-marquee-wrap:hover .promo-marquee-text {
+    animation-play-state: paused;
+}
+@keyframes marquee-green {
+    0% { transform: translateX(100%); }
+    100% { transform: translateX(-100%); }
+}
+
+/* === LOADING SPINNER STYLES === */
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+.btn-spinner {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+.btn-spinner svg {
+    animation: spin 1s linear infinite;
+    width: 20px;
+    height: 20px;
+}
+/* Saat loading, tombol tetap hijau tapi teks berubah */
+.b.bp:disabled {
+    opacity: 0.9;
+    cursor: wait;
+}
+</style>
+
+<!-- SOUND EFFECT (Ganti src dengan asset lokal Anda jika mau, misal: asset('sounds/pop.mp3')) -->
+<!-- Menggunakan soft UI chime yang pendek dan tidak mengganggu -->
+<audio id="loginSound" preload="auto">
+    <source src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3" type="audio/mpeg">
+</audio>
+
 <!-- BRAND LEFT -->
 <div class="login-brand">
     <div class="login-logo-wrap"><img src="{{ asset('logo-fixpro.jpg') }}" alt="FixPro Logo"></div>
-    <h2>FixPro <span>AL2000</span></h2>
-    <p>Sistem manajemen servis profesional.<br>Daftar langsung, trial aktif.</p>
-    <!-- <div class="db-status db-ok"><i class="fas fa-database"></i> DB OK</div> -->
+    <h2>FixPro <span>Enterprise</span></h2>
+    <p>Sistem manajemen servis profesional.<br>Daftar langsung, trial aktif 1 Bulan.</p>
 </div>
 
 <!-- FORM RIGHT -->
 <div class="login-form-area">
-    <div class="welcome-text">
-        <h2>Selamat Datang</h2>
-        <div class="sub">Kelola bisnis servis Anda dengan mudah</div>
+    
+    <!-- PROMO TEXT BERJALAN -->
+    <div class="promo-marquee-wrap">
+        <div class="promo-marquee-text">
+            <i class="fas fa-tags" style="margin-right: 6px; color: #16a34a;"></i>
+            Jangan lewatkan kesempatan untuk upgrade pengelolaan toko Anda. 🔥 Harga Promo: Rp125.000 / 3 Bulan &nbsp;•&nbsp; Kelola bisnis servis HP lebih mudah, cepat & profesional dengan FIXPRO.
+        </div>
+    </div>
+
+    <div class="welcome-text" style="text-align: center; margin-bottom: 24px;">
+        <h2 style="font-size: 1.5rem; font-weight: 700; color: #0f172a; margin-bottom: 8px;">Selamat Datang di FixPro</h2>
+        <div class="sub" style="color: #64748b; font-size: 0.95rem; line-height: 1.6;">
+            🚀 Kelola bisnis servis Anda lebih mudah dalam satu sistem terintegrasi.<br>
+            <strong style="color: #16a34a;">FIXPRO</strong> — Solusi manajemen bisnis servis HP profesional.
+        </div>
     </div>
 
     @if(session('error'))
@@ -35,7 +104,8 @@
 
     <!-- LOGIN PANEL -->
     <div class="auth-panel {{ $showLogin ? 'on' : '' }}" id="panel-login">
-        <form method="POST" action="{{ route('login') }}">
+        <!-- Tambahkan ID pada form untuk target JS -->
+        <form method="POST" action="{{ route('login') }}" id="loginForm">
             @csrf
             <div class="fg">
                 <label>Username / Email</label>
@@ -51,7 +121,7 @@
                 @error('password')<div class="field-err">{{ $message }}</div>@enderror
             </div>
 
-            {{-- ===== KODE AKTIVASI (hanya untuk user yang masa aktifnya HABIS) ===== --}}
+            {{-- ===== KODE AKTIVASI ===== --}}
             @php
                 $showCodeField = $errors->has('activation_code') || old('activation_code') !== null || request()->query('expired') === '1';
                 $adminWaClean = isset($adminWa) ? preg_replace('/[^0-9]/', '', (string) $adminWa) : '';
@@ -82,7 +152,18 @@
                 </div>
             </div>
 
-            <button type="submit" class="b bp b-full"><i class="fas fa-sign-in-alt"></i> Masuk</button>
+            <!-- TOMBOL LOGIN DENGAN SPINNER -->
+            <button type="submit" class="b bp b-full" id="loginSubmitBtn">
+                <span class="btn-text"><i class="fas fa-sign-in-alt"></i> Masuk</span>
+                <span class="btn-spinner">
+                    <!-- Spinner SVG Warna Hijau Terang di atas background tombol -->
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" style="stroke: rgba(255,255,255,0.4);"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" style="fill: #ffffff;"></path>
+                    </svg>
+                    Memproses...
+                </span>
+            </button>
         </form>
 
         @php
@@ -97,12 +178,11 @@
             </a>
         </div>
         @endif
-
     </div>
 
     <!-- REGISTER PANEL -->
     <div class="auth-panel {{ $showRegister ? 'on' : '' }}" id="panel-register">
-        <form method="POST" action="{{ route('register') }}">
+        <form method="POST" action="{{ route('register') }}" id="registerForm">
             @csrf
             <input type="hidden" name="tab" value="register">
             <div class="fg">
@@ -111,7 +191,7 @@
                 @error('name')<div class="field-err">{{ $message }}</div>@enderror
             </div>
             <div class="fg">
-                <label>Nama Toko / Bengkel *</label>
+                <label>Nama Toko / Konter *</label>
                 <input class="fci" type="text" name="nama_toko" value="{{ old('nama_toko') }}" placeholder="Contoh: iPhone Service Surabaya">
                 <div style="font-size:.68rem;color:#64748b;margin-top:3px">Kosongkan untuk otomatis menggunakan Nama Anda</div>
                 @error('nama_toko')<div class="field-err">{{ $message }}</div>@enderror
@@ -144,12 +224,55 @@
                 @error('phone')<div class="field-err">{{ $message }}</div>@enderror
             </div>
             <div class="trial-badge"><i class="fas fa-clock"></i> Trial Aktif 1 Bulan — Hubungi admin untuk Serial Number perpanjangan!</div>
-            <button type="submit" class="b bp b-full" style="margin-top:14px"><i class="fas fa-user-plus"></i> Daftar & Langsung Masuk</button>
+            
+            <!-- TOMBOL REGISTER DENGAN SPINNER (Opsional, untuk konsistensi) -->
+            <button type="submit" class="b bp b-full" style="margin-top:14px" id="registerSubmitBtn">
+                <span class="btn-text"><i class="fas fa-user-plus"></i> Daftar & Langsung Masuk</span>
+                <span class="btn-spinner">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" style="stroke: rgba(255,255,255,0.4);"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" style="fill: #ffffff;"></path>
+                    </svg>
+                    Mendaftar...
+                </span>
+            </button>
         </form>
     </div>
 </div>
 
 <script>
+// === 1. LOGIC UNTUK SOUND & SPINNER SAAT LOGIN ===
+document.getElementById('loginForm').addEventListener('submit', function(e) {
+    // Pastikan form valid sebelum menampilkan spinner (cek HTML5 validation)
+    if (this.checkValidity()) {
+        // Mainkan suara
+        const audio = document.getElementById('loginSound');
+        audio.volume = 0.5; // Atur volume agar tidak kaget (50%)
+        audio.play().catch(error => {
+            console.log('Audio playback prevented by browser (needs user interaction first)');
+        });
+
+        // Tampilkan spinner, sembunyikan teks
+        const btn = document.getElementById('loginSubmitBtn');
+        btn.querySelector('.btn-text').style.display = 'none';
+        btn.querySelector('.btn-spinner').style.display = 'inline-flex';
+        
+        // Disable tombol untuk mencegah double-click
+        btn.disabled = true;
+    }
+});
+
+// === 2. LOGIC UNTUK SPINNER SAAT REGISTER (Opsional tapi disarankan) ===
+document.getElementById('registerForm').addEventListener('submit', function(e) {
+    if (this.checkValidity()) {
+        const btn = document.getElementById('registerSubmitBtn');
+        btn.querySelector('.btn-text').style.display = 'none';
+        btn.querySelector('.btn-spinner').style.display = 'inline-flex';
+        btn.disabled = true;
+    }
+});
+
+// === FUNGSI TAB & UTILITAS LAINNYA ===
 function switchTab(tab) {
     document.querySelectorAll('.auth-tab').forEach(function(t, i) {
         t.classList.toggle('on', (tab === 'login' && i === 0) || (tab === 'register' && i === 1));
@@ -157,8 +280,23 @@ function switchTab(tab) {
     document.getElementById('panel-login').classList.toggle('on', tab === 'login');
     document.getElementById('panel-register').classList.toggle('on', tab === 'register');
 }
+
 function toggleActCode() {
     document.getElementById('actCodeWrap').classList.toggle('open');
+}
+
+function togglePass(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const icon = btn.querySelector('i');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
 }
 </script>
 </x-guest-layout>

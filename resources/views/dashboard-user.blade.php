@@ -125,33 +125,8 @@
         </div>
     </div>
 
-    <!-- Kolom kanan: Banner iklan portrait -->
+    <!-- Kolom kanan: Info box (banner promo sekarang tampil di layout semua halaman) -->
     <div>
-        @foreach($banners as $banner)
-        <div style="display:block;margin-bottom:16px;border-radius:14px;overflow:hidden;border:1px solid #e2e8f0;transition:transform .2s,box-shadow .2s;background:#fff" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 20px rgba(0,0,0,.08)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
-            {{-- Gambar tanpa overlay --}}
-            <img src="{{ str_starts_with($banner->gambar, 'http') ? $banner->gambar : Storage::url($banner->gambar) }}" alt="{{ $banner->judul }}" style="width:100%;height:auto;display:block;aspect-ratio:2/3;object-fit:cover">
-
-            {{-- Area konten putih --}}
-            <div style="padding:16px 18px 18px;background:#fff">
-                <div style="font-size:.95rem;font-weight:800;color:#0f172a;margin-bottom:6px;line-height:1.3">{{ $banner->judul }}</div>
-                @if($banner->deskripsi)
-                <div class="banner-desc" style="font-size:.78rem;color:#475569;line-height:1.6;margin-bottom:14px">
-                    {!! $banner->deskripsi !!}
-                </div>
-                @endif
-                <div style="display:flex;gap:8px">
-                    <a href="{{ $banner->link ?: '#' }}" target="_blank" style="display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:10px 16px;background:var(--primary);color:#fff;border-radius:10px;font-size:.78rem;font-weight:700;text-decoration:none;transition:opacity .2s;flex:1" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
-                        <i class="fas fa-rocket"></i> Daftar Sekarang!
-                    </a>
-                    <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $settings['telp'] ?? '6281234567890') }}?text=Halo%20FixPro,%20saya%20tertarik%20dengan%20{{ urlencode($banner->judul) }}" target="_blank" style="display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:10px 16px;background:#25D366;color:#fff;border-radius:10px;font-size:.78rem;font-weight:700;text-decoration:none;transition:opacity .2s;flex:1" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
-                        <i class="fab fa-whatsapp"></i> WhatsApp
-                    </a>
-                </div>
-            </div>
-        </div>
-        @endforeach
-
         <!-- Info box -->
         <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:16px;font-size:.78rem;color:#166534;line-height:1.6">
             <strong><i class="fas fa-info-circle"></i> Tips:</strong><br>

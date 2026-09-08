@@ -43,16 +43,25 @@ class ActivationCodeController extends Controller
         $this->checkAdmin();
 
         $validated = $request->validate([
-            'durasi'   => 'required|in:register,standard_1_tahun,enterprise_1_tahun,1_bulan,3_bulan,6_bulan,1_tahun',
-            'jumlah'   => 'required|integer|min:1|max:100',
-            'cabang_id' => 'nullable|exists:cabang,id',
-            'paket'    => 'nullable|in:standar,enterprise',
+            'durasi'      => 'required|in:register,standard_1_tahun,enterprise_1_tahun,1_bulan,3_bulan,6_bulan,1_tahun',
+            'jumlah'      => 'required|integer|min:1|max:100',
+            'cabang_id'   => 'nullable|exists:cabang,id',
+            'paket'       => 'nullable|in:standar,enterprise',
             'jumlah_user' => 'nullable|integer|min:1|max:100',
-            'note'     => 'nullable|string|max:200',
+            'note'        => 'nullable|string|max:200',
         ]);
 
+        // ── Mapping durasi: hari & paket default ──
+        $durasiMap = [
+            'standard_1_tahun'   => ['days' => 365, 'paket' => 'standar'],
+            'enterprise_1_tahun' => ['days' => 365, 'paket' => 'enterprise'],
+            '1_bulan'            => ['days' => 30,  'paket' => null],
+            '3_bulan'            => ['days' => 90,  'paket' => null],
+            '6_bulan'            => ['days' => 180, 'paket' => null],
+            '1_tahun'            => ['days' => 365, 'paket' => null],
+        ];
+
         // "Sesuai yang di-register": ikuti paket dari request aktivasi cabang tsb.
-        // Tidak ada lagi opsi permanen — masa berlaku selalu terbatas sesuai paket (1 tahun).
         $durasi = $validated['durasi'];
         if ($durasi === 'register') {
             $paketRegister = null;
@@ -65,15 +74,12 @@ class ActivationCodeController extends Controller
                 : 'standard_1_tahun';
         }
 
-        // Paket otomatis mengikuti pilihan masa berlaku
-        $paket = str_contains($durasi, 'enterprise') ? 'enterprise' : ($validated['paket'] ?? 'standar');
+        // Ambil dari map, fallback aman
+        $map        = $durasiMap[$durasi] ?? ['days' => 365, 'paket' => 'standar'];
+        $durasiDays = $map['days'];
+        $paket      = $map['paket'] ?? ($validated['paket'] ?? 'standar');
 
-        $mulai = now();
-        $durasiDays = match ($durasi) {
-            'standard_1_tahun', 'enterprise_1_tahun', '1_tahun' => 365,
-            '1_bulan' => 30, '3_bulan' => 90, '6_bulan' => 180,
-            default => 365,
-        };
+        $mulai    = now();
         $berakhir = $mulai->copy()->addDays($durasiDays);
 
         $created = [];

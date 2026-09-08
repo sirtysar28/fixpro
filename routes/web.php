@@ -144,8 +144,6 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::resource('servis', ServisController::class)->parameter('servis', 'servis');
     });
 
-    // Banner Iklan — moved to Super Admin only section below
-
     // Arsip & Lacak Servis (all authenticated)
     Route::get('/arsip-servis', [ArsipServisController::class, 'index'])->name('arsip-servis.index');
     Route::get('/arsip-servis/lacak/{kode}', [ArsipServisController::class, 'lacak'])->name('arsip-servis.lacak');
@@ -162,9 +160,6 @@ Route::middleware(['auth', 'active'])->group(function () {
     });
 
     // ===== STOK + PEMBELIAN + KARTU STOK =====
-    // Admin (cabang pusat enterprise) DAN Admin Cabang Anak sama-sama boleh
-    // mengelola daftar sparepart & pembelian — tapi strictly SESUAI CABANG MASING-MASING
-    // (guard per-cabang ada di StokController::checkCabangAccess & PembelianController::checkCabangAccess)
     Route::middleware('role:Admin,Admin Cabang Anak')->group(function () {
         // Stok (daftar sparepart)
         Route::post('/quick-stok', [StokController::class, 'quickUpdate'])->name('stok.quick-update');
@@ -173,7 +168,7 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::post('/stok/import-excel', [StokController::class, 'importExcel'])->name('stok.import-excel');
         Route::resource('stok', StokController::class);
 
-        // Pembelian Supplier — Final (stok otomatis naik, hutang supplier, retur, nota)
+        // Pembelian Supplier
         Route::get('/pembelian/hutang', [PembelianController::class, 'hutang'])->name('pembelian.hutang');
         Route::get('/pembelian/{pembelian}/nota', [PembelianController::class, 'nota'])->name('pembelian.nota');
         Route::post('/pembelian/{pembelian}/bayar-hutang', [PembelianController::class, 'bayarHutang'])->name('pembelian.bayar-hutang');
@@ -192,20 +187,19 @@ Route::middleware(['auth', 'active'])->group(function () {
 
     // Admin only routes
     Route::middleware('role:Admin')->group(function () {
-        // Master Data
-        Route::get('/tipe-hp', [TipeHpController::class, 'index'])->name('tipe-hp.index');
-        Route::post('/tipe-hp', [TipeHpController::class, 'store'])->name('tipe-hp.store');
-        Route::put('/tipe-hp/{tipeHp}', [TipeHpController::class, 'update'])->name('tipe-hp.update');
-        Route::delete('/tipe-hp/{tipeHp}', [TipeHpController::class, 'destroy'])->name('tipe-hp.destroy');
+        // Master Data — Master Tipe HP (khusus Super Admin; API lookup tipe-hp tetap terbuka utk form servis)
+        Route::middleware(\App\Http\Middleware\EnsureSuperAdmin::class)->group(function () {
+            Route::get('/tipe-hp', [TipeHpController::class, 'index'])->name('tipe-hp.index');
+            Route::post('/tipe-hp', [TipeHpController::class, 'store'])->name('tipe-hp.store');
+            Route::put('/tipe-hp/{tipeHp}', [TipeHpController::class, 'update'])->name('tipe-hp.update');
+            Route::delete('/tipe-hp/{tipeHp}', [TipeHpController::class, 'destroy'])->name('tipe-hp.destroy');
+        });
 
         // Pelanggan
         Route::resource('pelanggan', PelangganController::class);
 
         // Teknisi
         Route::resource('teknisi', TeknisiController::class);
-
-        // Stok, Pembelian & Kartu Stok dipindah ke grup tersendiri
-        // (bisa diakses Admin + Admin Cabang Anak — lihat grup di bawah)
 
         // Kas
         Route::get('/kas', [KasController::class, 'index'])->name('kas.index');
@@ -217,8 +211,6 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::post('/jualbeli/bulk-destroy', [JualBeliController::class, 'bulkDestroy'])->name('jualbeli.bulk-destroy');
         Route::resource('jualbeli', JualBeliController::class);
 
-        // Pembelian Supplier dipindah ke grup tersendiri (lihat bawah)
-
         // ===== PAYMENT GATEWAY (Fitur #8) =====
         Route::get('/payment', [PaymentController::class, 'select'])->name('payment.select');
         Route::post('/payment/create', [PaymentController::class, 'create'])->name('payment.create');
@@ -227,15 +219,33 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::post('/payment/{kode}/refresh', [PaymentController::class, 'refresh'])->name('payment.refresh');
         Route::get('/payment/return/{kode}', [PaymentController::class, 'returned'])->name('payment.return');
 
-        // ===== WHATSAPP WEB (Fitur #9) =====
-        Route::get('/whatsapp', [WhatsAppController::class, 'index'])->name('whatsapp.index');
-        Route::get('/whatsapp/qr', [WhatsAppController::class, 'getQr'])->name('whatsapp.qr');
-        Route::get('/whatsapp/device-status', [WhatsAppController::class, 'deviceStatus'])->name('whatsapp.device-status');
-        Route::get('/whatsapp/poll', [WhatsAppController::class, 'poll'])->name('whatsapp.poll');
-        Route::post('/whatsapp/send-auto', [WhatsAppController::class, 'sendAuto'])->name('whatsapp.send-auto');
-        Route::get('/whatsapp/room/{room}', [WhatsAppController::class, 'show'])->name('whatsapp.show');
-        Route::post('/whatsapp/room/{room}/send', [WhatsAppController::class, 'send'])->name('whatsapp.send');
-        Route::post('/whatsapp/room/{room}/archive', [WhatsAppController::class, 'archive'])->name('whatsapp.archive');
+        // ===== WHATSAPP WEB (Fitur #9) — KHUSUS SUPER ADMIN =====
+        Route::middleware(\App\Http\Middleware\EnsureSuperAdmin::class)->group(function () {
+            // Index & List
+            Route::get('/whatsapp', [WhatsAppController::class, 'index'])->name('whatsapp.index');
+            Route::get('/whatsapp/stats', [WhatsAppController::class, 'stats'])->name('whatsapp.stats');
+
+            // QR & Device
+            Route::get('/whatsapp/qr', [WhatsAppController::class, 'getQr'])->name('whatsapp.qr');
+            Route::get('/whatsapp/device-status', [WhatsAppController::class, 'deviceStatus'])->name('whatsapp.device-status');
+            Route::get('/whatsapp/poll', [WhatsAppController::class, 'poll'])->name('whatsapp.poll');
+
+            // Bulk Actions
+            Route::post('/whatsapp/mark-read-bulk', [WhatsAppController::class, 'markReadBulk'])->name('whatsapp.mark-read-bulk');
+            Route::post('/whatsapp/delete-bulk', [WhatsAppController::class, 'deleteBulk'])->name('whatsapp.delete-bulk');
+            Route::post('/whatsapp/send-bulk', [WhatsAppController::class, 'sendBulk'])->name('whatsapp.send-bulk');
+            Route::post('/whatsapp/send-auto', [WhatsAppController::class, 'sendAuto'])->name('whatsapp.send-auto');
+
+            // Room Detail & Messages
+            Route::get('/whatsapp/room/{room}', [WhatsAppController::class, 'show'])->name('whatsapp.show');
+            Route::get('/whatsapp/room/{room}/messages', [WhatsAppController::class, 'getMessages'])->name('whatsapp.messages');
+
+            // Room Actions
+            Route::post('/whatsapp/room/{room}/send', [WhatsAppController::class, 'send'])->name('whatsapp.send');
+            Route::post('/whatsapp/room/{room}/reply', [WhatsAppController::class, 'sendReply'])->name('whatsapp.send-reply');
+            Route::post('/whatsapp/room/{room}/mark-read', [WhatsAppController::class, 'markRead'])->name('whatsapp.mark-read');
+            Route::post('/whatsapp/room/{room}/archive', [WhatsAppController::class, 'archive'])->name('whatsapp.archive');
+        });
 
         // Penjualan Sparepart (POS)
         Route::get('/penjualan-sparepart/api/products', [PenjualanSparepartController::class, 'getProducts'])->name('penjualan-sparepart.api.products');
@@ -293,19 +303,22 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::post('/cabang/create-account', [CabangController::class, 'createBranchAccount'])->name('cabang.create-account');
         Route::get('/api/cabang-stok', [CabangController::class, 'getStokByCabang'])->name('cabang.get-stok');
 
-        // Pengaturan
+        // User Management
         Route::resource('user-management', UserManagementController::class);
         Route::post('/user-management/{user}/toggle-super', [UserManagementController::class, 'toggleSuperAdmin'])->name('user-management.toggle-super');
         Route::post('/user-management/{user}/toggle-paket', [UserManagementController::class, 'togglePaket'])->name('user-management.toggle-paket');
 
         // ===== SUPER ADMIN ONLY =====
 
-        // Banner Iklan — hanya Super Admin yang boleh kelola
-        Route::get('/banner-iklan', [BannerIklanController::class, 'index'])->name('banner-iklan.index');
-        Route::post('/banner-iklan', [BannerIklanController::class, 'store'])->name('banner-iklan.store');
-    Route::put('/banner-iklan/{banner_iklan}', [BannerIklanController::class, 'update'])->name('banner-iklan.update');
-    Route::patch('/banner-iklan/{banner_iklan}', [BannerIklanController::class, 'update']);
-    Route::delete('/banner-iklan/{banner_iklan}', [BannerIklanController::class, 'destroy'])->name('banner-iklan.destroy');
+        // Banner Iklan — update/tampilan banner hanya Super Admin
+        Route::middleware(\App\Http\Middleware\EnsureSuperAdmin::class)->group(function () {
+            Route::get('/banner-iklan', [BannerIklanController::class, 'index'])->name('banner-iklan.index');
+            Route::post('/banner-iklan', [BannerIklanController::class, 'store'])->name('banner-iklan.store');
+            Route::put('/banner-iklan/{banner_iklan}', [BannerIklanController::class, 'update'])->name('banner-iklan.update');
+            Route::patch('/banner-iklan/{banner_iklan}', [BannerIklanController::class, 'update']);
+            Route::delete('/banner-iklan/{banner_iklan}', [BannerIklanController::class, 'destroy'])->name('banner-iklan.destroy');
+        });
+
         // Serial Number & Aktivasi
         Route::get('/serial-number', [SerialNumberController::class, 'index'])->name('serial-number.index');
         Route::post('/serial-number/generate', [SerialNumberController::class, 'generate'])->name('serial-number.generate');
@@ -352,7 +365,7 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::delete('/admin/languages/keys', [LanguageController::class, 'destroyKey'])->name('admin.languages.keys.destroy');
     });
 
-    // ===== INVOICE SPAREPART — KHUSUS SUPER ADMIN (pusat): Retail + Grosir 1/2/3 + Reseller + Member + Khusus =====
+    // ===== INVOICE SPAREPART — KHUSUS SUPER ADMIN (pusat) =====
     Route::middleware(\App\Http\Middleware\EnsureSuperAdmin::class)->prefix('invoice')->name('invoice.')->group(function () {
         Route::get('/', [InvoiceSparepartController::class, 'create'])->name('create');
         Route::get('/api/produk', [InvoiceSparepartController::class, 'apiProduk'])->name('api.produk');
@@ -372,12 +385,12 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::post('/{invoice}/retur', [InvoiceSparepartController::class, 'returStore'])->name('retur.store');
     });
 
-    // ===== PENJUALAN GROSIR (Admin & Admin Cabang Anak — data TERPISAH per toko) =====
+    // ===== PENJUALAN GROSIR (Admin & Admin Cabang Anak) =====
     Route::middleware('role:Admin,Admin Cabang Anak')->prefix('grosir')->name('grosir.')->group(function () {
         // Dashboard Grosir
         Route::get('/', [GrosirDashboardController::class, 'index'])->name('dashboard');
 
-        // Harga Grosir (Eceran, Grosir 1-3, Reseller, Distributor + Harga Khusus)
+        // Harga Grosir
         Route::get('/harga', [HargaGrosirController::class, 'index'])->name('harga.index');
         Route::post('/harga', [HargaGrosirController::class, 'store'])->name('harga.store');
         Route::post('/harga/massal', [HargaGrosirController::class, 'massal'])->name('harga.massal');
@@ -385,7 +398,7 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::post('/harga/khusus', [HargaGrosirController::class, 'storeKhusus'])->name('harga.khusus.store');
         Route::delete('/harga/khusus/{harga_khusus}', [HargaGrosirController::class, 'destroyKhusus'])->name('harga.khusus.destroy');
 
-        // Pelanggan Grosir (Data, Reseller, Member, Grosir, Distributor)
+        // Pelanggan Grosir
         Route::resource('pelanggan', PelangganGrosirController::class)
             ->parameter('pelanggan', 'pelanggan_grosir')
             ->names('pelanggan');
@@ -394,7 +407,7 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('/api/produk', [PenjualanGrosirController::class, 'apiProduk'])->name('penjualan.api.produk');
         Route::get('/api/pelanggan', [PenjualanGrosirController::class, 'apiPelanggan'])->name('penjualan.api.pelanggan');
 
-        // Penjualan Grosir (transaksi, riwayat, nota, invoice, surat jalan)
+        // Penjualan Grosir
         Route::get('/penjualan', [PenjualanGrosirController::class, 'index'])->name('penjualan.index');
         Route::get('/penjualan/create', [PenjualanGrosirController::class, 'create'])->name('penjualan.create');
         Route::post('/penjualan', [PenjualanGrosirController::class, 'store'])->name('penjualan.store');
@@ -420,14 +433,14 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::post('/retur', [ReturGrosirController::class, 'store'])->name('retur.store');
         Route::get('/retur/{retur_grosir}', [ReturGrosirController::class, 'show'])->name('retur.show');
 
-        // Piutang Grosir (Aktif, Jatuh Tempo, Pembayaran, Riwayat)
+        // Piutang Grosir
         Route::get('/piutang', [PiutangGrosirController::class, 'index'])->name('piutang.index');
         Route::post('/piutang/{penjualan_grosir}/bayar', [PiutangGrosirController::class, 'bayar'])->name('piutang.bayar');
 
-        // Laporan Grosir (Penjualan, Omzet, Laba, Terlaris, Per Pelanggan/Toko/Gudang, Piutang)
+        // Laporan Grosir
         Route::get('/laporan', [LaporanGrosirController::class, 'index'])->name('laporan.index');
 
-        // Stok Grosir (Toko, Gudang, Minimum, Reservasi)
+        // Stok Grosir
         Route::get('/stok', [StokGrosirController::class, 'index'])->name('stok.index');
     });
 

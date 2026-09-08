@@ -3,6 +3,77 @@
 
 @section('content')
 <style>
+/* ── RUNNING TEXT NOTIFICATION STYLES ── */
+.running-text-container {
+    width: 100%;
+    background: #0f172a;
+    color: #f8fafc;
+    overflow: hidden;
+    white-space: nowrap;
+    position: relative;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    border: 1px solid #1e293b;
+    z-index: 998;
+    transition: all 0.3s ease;
+}
+
+/* Styling khusus jika berhasil ditempel di bawah header (menyatu) */
+.running-text-container.attached-to-header {
+    border-radius: 0 0 12px 12px;
+    border-top: none;
+    margin-top: -1px;
+    margin-bottom: 0;
+}
+
+.running-text-badge {
+    padding: 10px 18px;
+    font-weight: 800;
+    font-size: 0.8rem;
+    z-index: 2;
+    flex-shrink: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.running-text-badge.promo { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
+.running-text-badge.maintenance { background: linear-gradient(135deg, #f59e0b, #d97706); color: #000; }
+
+.running-text-wrapper {
+    flex-grow: 1;
+    overflow: hidden;
+    position: relative;
+    mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+    -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+}
+
+.running-text {
+    display: inline-block;
+    padding-left: 100%;
+    animation: scroll-left 25s linear infinite;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #e2e8f0;
+}
+
+/* Pause animation on hover for better readability */
+.running-text-container:hover .running-text {
+    animation-play-state: paused;
+}
+
+@keyframes scroll-left {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-100%); }
+}
+
+/* ── EXISTING STYLES ── */
 .banner-alert{position:fixed;top:20px;right:20px;z-index:9999;padding:14px 22px;border-radius:10px;color:#fff;font-size:.85rem;font-weight:600;max-width:400px;box-shadow:0 8px 25px rgba(0,0,0,.15);animation:slideIn .3s ease;display:none}
 .banner-alert.show{display:flex;align-items:center;gap:10px}
 .banner-alert.success{background:#16a34a}
@@ -20,6 +91,37 @@
 <div id="bannerAlert" class="banner-alert"><span id="bannerAlertText"></span></div>
 <!-- Loading -->
 <div id="bannerLoading" class="banner-loading"><div class="spinner"></div></div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- CONTAINER TAMPILAN RUNNING TEXT (Akan dipindahkan otomatis ke bawah header oleh JS) -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="runningTextDisplay"></div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- FORM KELOLA RUNNING TEXT (Tetap di sini untuk Admin mengedit) -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="card" style="margin-bottom: 20px; border-left: 4px solid #2563eb;">
+    <h3 style="font-size:.95rem;margin-bottom:16px">
+        <i class="fas fa-broadcast-tower" style="color:#2563eb;margin-right:6px"></i> 
+        Kelola Notifikasi Text Berjalan
+    </h3>
+    <div class="form-row">
+        <div class="form-group">
+            <label><i class="fas fa-bullhorn" style="color:#2563eb"></i> Teks Promo</label>
+            <input type="text" id="manualPromoText" class="form-input" placeholder="Contoh: 🎉 PROMO SPESIAL! Diskon 50% untuk semua paket training bulan ini.">
+            <div style="font-size:.7rem;color:#94a3b8;margin-top:4px">Kosongkan jika tidak ingin menampilkan notifikasi promo.</div>
+        </div>
+        <div class="form-group">
+            <label><i class="fas fa-exclamation-triangle" style="color:#f59e0b"></i> Teks Maintenance</label>
+            <input type="text" id="manualMaintenanceText" class="form-input" placeholder="Contoh: ⚠️ PEMBERITAHUAN: Sistem akan mengalami maintenance pada hari Minggu pukul 02.00 WIB.">
+            <div style="font-size:.7rem;color:#94a3b8;margin-top:4px">Kosongkan jika tidak ada jadwal maintenance.</div>
+        </div>
+    </div>
+    <button type="button" onclick="saveRunningText()" class="btn btn-primary" style="margin-top: 10px;">
+        <i class="fas fa-save"></i> Simpan & Terapkan Text Berjalan
+    </button>
+</div>
+<!-- ═══════════════════════════════════════════════════════════ -->
 
 <div class="flex-between mb-4">
     <h2 style="margin:0;font-size:1.3rem"><i class="fas fa-ad" style="color:var(--primary);margin-right:6px"></i> Kelola Banner Iklan</h2>
@@ -150,10 +252,86 @@ let editQuill = null;
 
 document.addEventListener('DOMContentLoaded', function() {
     addQuill = new Quill('#addEditor', quillConfig);
-    // Render banner list directly from Blade data (no extra fetch needed)
     const banners = @json($banners);
     renderBannerList(banners);
+    
+    // 1. Load running text manual logic saat halaman dimuat
+    loadRunningText();
+
+    // 2. AUTO-MOVE RUNNING TEXT TO BELOW HEADER (Smart Injection)
+    // Mencoba mencari elemen header/navbar umum di layout Anda
+    const header = document.querySelector('header') || document.querySelector('.navbar') || document.querySelector('.header') || document.querySelector('nav') || document.getElementById('main-header');
+    const runningTextDisplay = document.getElementById('runningTextDisplay');
+    
+    if (header && runningTextDisplay) {
+        // Pindahkan elemen tampilan tepat setelah header
+        header.insertAdjacentElement('afterend', runningTextDisplay);
+        
+        // Tambahkan class agar styling menyesuaikan (border atas dihilangkan agar menyatu)
+        const containers = runningTextDisplay.querySelectorAll('.running-text-container');
+        containers.forEach(el => el.classList.add('attached-to-header'));
+    }
 });
+
+// ═══════════════════════════════════════════════════════════
+// ── MANUAL RUNNING TEXT LOGIC ──
+// ═══════════════════════════════════════════════════════════
+function loadRunningText() {
+    const promo = localStorage.getItem('running_text_promo') || '';
+    const maintenance = localStorage.getItem('running_text_maintenance') || '';
+    
+    document.getElementById('manualPromoText').value = promo;
+    document.getElementById('manualMaintenanceText').value = maintenance;
+    
+    renderRunningText(promo, maintenance);
+}
+
+function saveRunningText() {
+    const promo = document.getElementById('manualPromoText').value.trim();
+    const maintenance = document.getElementById('manualMaintenanceText').value.trim();
+    
+    // Simpan ke localStorage (Manual Logic Frontend)
+    localStorage.setItem('running_text_promo', promo);
+    localStorage.setItem('running_text_maintenance', maintenance);
+    
+    renderRunningText(promo, maintenance);
+    showAlert('✅ Pengaturan text berjalan berhasil diterapkan!', 'success');
+}
+
+function renderRunningText(promo, maintenance) {
+    const container = document.getElementById('runningTextDisplay');
+    let html = '';
+    
+    if (promo) {
+        html += `
+        <div class="running-text-container">
+            <div class="running-text-badge promo"><i class="fas fa-bullhorn"></i> PROMO</div>
+            <div class="running-text-wrapper"><div class="running-text">${escapeHtml(promo)}</div></div>
+        </div>`;
+    }
+    
+    if (maintenance) {
+        html += `
+        <div class="running-text-container">
+            <div class="running-text-badge maintenance"><i class="fas fa-exclamation-triangle"></i> MAINTENANCE</div>
+            <div class="running-text-wrapper"><div class="running-text">${escapeHtml(maintenance)}</div></div>
+        </div>`;
+    }
+    
+    if (!promo && !maintenance) {
+        html = '<div style="background:#f8fafc; color:#64748b; padding:16px; border-radius:10px; text-align:center; font-size:0.9rem; margin-bottom:20px; border:1px dashed #cbd5e1;"><i class="fas fa-info-circle"></i> Tidak ada notifikasi text berjalan yang aktif. Silakan isi form di atas.</div>';
+    }
+    
+    container.innerHTML = html;
+}
+
+// Helper untuk mencegah XSS pada input text manual
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+// ═══════════════════════════════════════════════════════════
 
 // ── Show Alert ──
 function showAlert(msg, type) {
@@ -168,9 +346,8 @@ function showAlert(msg, type) {
 function showLoading() { document.getElementById('bannerLoading').classList.add('show'); }
 function hideLoading() { document.getElementById('bannerLoading').classList.remove('show'); }
 
-// ── AJAX Helper (FIXED: HTML response = ERROR, not success) ──
+// ── AJAX Helper ──
 async function ajaxPost(url, formData) {
-    // Always refresh CSRF token from meta tag
     const csrf = getCSRF();
     if (csrf) formData.set('_token', csrf);
 
@@ -183,7 +360,6 @@ async function ajaxPost(url, formData) {
         });
         const text = await resp.text();
 
-        // If response is HTML → something went wrong (CSRF, auth, server error, redirect to login)
         if (text.includes('<!DOCTYPE') || text.includes('<html')) {
             hideLoading();
             let errMsg = 'Terjadi kesalahan. Coba refresh halaman.';
@@ -202,15 +378,12 @@ async function ajaxPost(url, formData) {
             return { ok: false, error: errMsg, status: resp.status };
         }
 
-        // Response is JSON (expected from AJAX endpoints)
         try {
             const json = JSON.parse(text);
             if (resp.ok) {
-                // 2xx response with JSON = success
                 hideLoading();
                 return { ok: true, data: json };
             } else {
-                // 4xx/5xx response with JSON = error with details
                 hideLoading();
                 let errMsg = json.error || json.message || ('Error ' + resp.status);
                 if (json.errors) {
@@ -221,7 +394,6 @@ async function ajaxPost(url, formData) {
                 return { ok: false, error: errMsg, status: resp.status };
             }
         } catch(e) {
-            // Not valid JSON either
             hideLoading();
             console.error('[Banner AJAX] Unexpected response:', resp.status, text.substring(0, 200));
             return { ok: false, error: 'Response tidak dikenali. Coba refresh halaman.', status: resp.status };
@@ -282,7 +454,6 @@ async function submitBanner() {
     const result = await ajaxPost('/banner-iklan', fd);
     if (result.ok) {
         showAlert('✅ Banner berhasil ditambahkan!', 'success');
-        // Reset form
         document.getElementById('addJudul').value = '';
         document.getElementById('addLink').value = '';
         document.getElementById('addGambar').value = '';

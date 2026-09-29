@@ -4,21 +4,39 @@
     <meta charset="UTF-8">
     <title>Invoice {{ $invoice->no_invoice }}</title>
     <style>
-        @page { size: {{ $thermal_width }}mm auto; margin: 2mm; }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Courier New', monospace; font-size: 11px; width: {{ $thermal_width }}mm; padding: 2mm; color: #000; }
+        @php
+            $paperWidth   = (int) ($thermal_width ?? 58);
+            $receiptWidth = (int) ($receipt_width ?? ($paperWidth === 80 ? 72 : 48));
+        @endphp
+        @page { size: {{ $paperWidth }}mm auto; margin: 0; }
+        * { margin: 0; padding: 0; box-sizing: border-box; max-width: 100%; }
+        html, body { width: {{ $paperWidth }}mm; }
+        body {
+            font-family: 'Courier New', monospace;
+            font-size: 9px;
+            line-height: 1.25;
+            width: {{ $receiptWidth }}mm;
+            margin: 0 auto;
+            padding: 2mm 0;
+            color: #000;
+            word-wrap: break-word;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
         .text-center { text-align: center; }
         .text-right { text-align: right; }
         .bold { font-weight: bold; }
-        .text-sm { font-size: 10px; }
-        .text-xs { font-size: 9px; }
-        .text-xl { font-size: 15px; }
-        .divider { border-top: 1px dashed #000; margin: 4px 0; }
-        .row { display: flex; justify-content: space-between; padding: 1px 0; }
-        table { width: 100%; border-collapse: collapse; }
-        .item-name { font-weight: bold; }
-        .grand-total { font-weight: bold; font-size: 13px; border-top: 2px solid #000; padding-top: 4px; margin-top: 4px; }
-        @media print { body { width: {{ $thermal_width }}mm; } }
+        .text-sm { font-size: 8px; }
+        .text-xs { font-size: 7px; }
+        .text-xl { font-size: 12px; }
+        .divider { border-top: 1px dashed #000; margin: 3px 0; }
+        .row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px; padding: 1px 0; }
+        .row > span { max-width: 100%; word-break: break-word; }
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        table td { word-break: break-word; }
+        .item-name { font-weight: bold; word-break: break-word; }
+        .grand-total { font-weight: bold; font-size: 11px; border-top: 2px solid #000; padding-top: 4px; margin-top: 4px; }
+        @media print { body { width: {{ $receiptWidth }}mm; } }
     </style>
 </head>
 <body>
@@ -69,7 +87,7 @@
     @endif
 
     @if($invoice->isVoid())
-    <div class="text-center bold" style="font-size:13px;margin-top:6px">** DIBATALKAN **</div>
+    <div class="text-center bold" style="font-size:11px;margin-top:6px">** DIBATALKAN **</div>
     @endif
 
     <div class="divider"></div>

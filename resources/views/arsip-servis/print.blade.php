@@ -5,18 +5,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Struk Servis - {{ $servis->kode }}</title>
     <style>
-        @page { margin: 5mm; }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.5; max-width: 80mm; margin: 0 auto; }
+        @php
+            // Default printer mini 58mm; area cetak aman 48mm agar teks tidak terpotong
+            $paperWidth   = (int) (\App\Models\Setting::get('thermal_width') ?? 58);
+            if (!in_array($paperWidth, [58, 80])) { $paperWidth = 58; }
+            $receiptWidth = $paperWidth === 80 ? 72 : 48;
+        @endphp
+        @page { size: {{ $paperWidth }}mm auto; margin: 0; }
+        * { box-sizing: border-box; margin: 0; padding: 0; max-width: 100%; }
+        html, body { width: {{ $paperWidth }}mm; }
+        body {
+            font-family: 'Courier New', monospace;
+            font-size: 9px;
+            line-height: 1.3;
+            width: {{ $receiptWidth }}mm;
+            margin: 0 auto;
+            padding: 2mm 0;
+            word-wrap: break-word;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
         .center { text-align: center; }
         .bold { font-weight: bold; }
-        .line { border-bottom: 1px dashed #000; margin: 4px 0; }
-        .row { display: flex; justify-content: space-between; }
+        .line { border-bottom: 1px dashed #000; margin: 3px 0; }
+        .row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px; }
+        .row > span { max-width: 100%; word-break: break-word; }
         .mb-2 { margin-bottom: 2px; }
         .mb-4 { margin-bottom: 4px; }
         .mb-8 { margin-bottom: 8px; }
-        .big { font-size: 16px; font-weight: bold; }
-        h1 { font-size: 18px; text-align: center; }
+        .big { font-size: 12px; font-weight: bold; }
+        h1 { font-size: 12px; text-align: center; }
+        @media print { body { width: {{ $receiptWidth }}mm; } }
     </style>
 </head>
 <body onload="window.print()">

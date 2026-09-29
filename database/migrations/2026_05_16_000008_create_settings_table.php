@@ -22,7 +22,7 @@ return new class extends Migration
             ['key' => 'telp', 'value' => '0812-3456-7890', 'created_at' => now(), 'updated_at' => now()],
             ['key' => 'wa_template', 'value' => 'Halo {nama}, servis ({kode}) - {perangkat} status: {status}. Biaya: {biaya}', 'created_at' => now(), 'updated_at' => now()],
             ['key' => 'wa_api_key', 'value' => '', 'created_at' => now(), 'updated_at' => now()],
-            ['key' => 'thermal_width', 'value' => '80', 'created_at' => now(), 'updated_at' => now()],
+            ['key' => 'thermal_width', 'value' => '58', 'created_at' => now(), 'updated_at' => now()],
             ['key' => 'qris_image', 'value' => '', 'created_at' => now(), 'updated_at' => now()],
             ['key' => 'qris_merchant', 'value' => '', 'created_at' => now(), 'updated_at' => now()],
         ]);

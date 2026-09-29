@@ -32,6 +32,8 @@ class SettingController extends Controller
             'google_client_id', 'google_client_secret', 'google_redirect_uri',
             'openai_api_key', 'bot_system_prompt',
             'bot_provider', 'gemini_api_key', 'groq_api_key',
+            // Lebar kertas printer thermal (default 58mm)
+            'thermal_width',
             // Fitur #8 — Payment Gateway
             'pg_provider', 'pg_mode', 'pg_api_key', 'pg_private_key', 'pg_merchant_code', 'pg_webhook_token',
             // Fitur #9 — WhatsApp Web
@@ -137,6 +139,10 @@ class SettingController extends Controller
             foreach ($this->globalSettingKeys() as $field) {
                 $newValue = $request->input($field);
                 if ($newValue !== null) {
+                    // Lebar thermal hanya boleh 58 atau 80 (default 58 = printer mini)
+                    if ($field === 'thermal_width') {
+                        $newValue = in_array($newValue, ['58', '80']) ? $newValue : '58';
+                    }
                     Setting::set($field, $newValue);
                 }
             }

@@ -14,6 +14,10 @@
         <div style="font-size:.75rem;color:#94a3b8;font-weight:600;">OMZET ({{ $jumlahTransaksi }} NOTA)</div>
         <div style="font-size:1.4rem;font-weight:800;color:var(--primary);margin-top:4px;">{{ formatRp($omzet) }}</div>
         <div style="font-size:.72rem;color:#64748b;">Diskon: {{ formatRp($totalDiskon) }}</div>
+        @if($totalRetur > 0)
+        <div style="font-size:.72rem;color:#c2410c;">Retur: &minus; {{ formatRp($totalRetur) }}</div>
+        <div style="font-size:.75rem;color:#0f172a;font-weight:700;margin-top:2px;">Omzet Bersih: {{ formatRp($omzetBersih) }}</div>
+        @endif
     </div>
     <div class="stat-card">
         <div style="font-size:.75rem;color:#94a3b8;font-weight:600;">LABA KOTOR</div>
@@ -51,6 +55,7 @@
             'toko' => '🏠 Per Toko',
             'gudang' => '🏬 Per Gudang',
             'piutang' => '💳 Piutang',
+            'retur' => '↩️ Retur',
         ];
     @endphp
     @foreach($tabs as $key => $label)
@@ -64,7 +69,7 @@
     <div class="card-header"><h3>Daftar Nota Penjualan</h3></div>
     <div class="table-wrap">
         <table>
-            <thead><tr><th>No Nota</th><th>Tanggal</th><th>Pelanggan</th><th>Level</th><th style="text-align:right;">Total</th><th style="text-align:right;">Laba</th><th>Status</th></tr></thead>
+            <thead><tr><th>No Nota</th><th>Tanggal</th><th>Pelanggan</th><th>Level</th><th style="text-align:right;">Total</th><th style="text-align:right;">Retur</th><th style="text-align:right;">Laba</th><th>Status</th></tr></thead>
             <tbody>
                 @foreach($notas as $p)
                 <tr>
@@ -73,6 +78,7 @@
                     <td>{{ $p->nama_pelanggan }}</td>
                     <td>{{ $p->labelLevelHarga() }}</td>
                     <td style="text-align:right;font-weight:600;">{{ formatRp($p->total) }}</td>
+                    <td style="text-align:right;color:{{ (float) $p->total_retur > 0 ? '#c2410c' : '#94a3b8' }};">{{ (float) $p->total_retur > 0 ? '- ' . formatRp($p->total_retur) : '-' }}</td>
                     <td style="text-align:right;">{{ formatRp($p->items->sum(fn($i) => ($i->harga_satuan - $i->modal_satuan) * $i->qty) - $p->diskon) }}</td>
                     <td>{{ $p->status }}</td>
                 </tr>
@@ -232,4 +238,68 @@
     </div>
 </div>
 @endif
+{{-- ============ TAB RETUR ============ --}}
+@if($tab === 'retur')
+@if($returPerMetode->isNotEmpty())
+<div class="grid-3" style="margin-bottom:16px;">
+    @foreach($returPerMetode as $m)
+    <div class="stat-card">
+        <div style="font-size:.75rem;color:#94a3b8;font-weight:600;">RETUR — {{ strtoupper($m->metode) }}</div>
+        <div style="font-size:1.3rem;font-weight:800;color:#c2410c;margin-top:4px;">{{ formatRp($m->nilai) }}</div>
+        <div style="font-size:.72rem;color:#64748b;">{{ $m->jumlah }} transaksi retur</div>
+    </div>
+    @endforeach
+</div>
+@endif
+
+<div class="card">
+    <div class="card-header"><h3>Daftar Retur Grosir</h3><span class="badge badge-proses">Total periode: {{ formatRp($totalRetur) }}</span></div>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>No Retur</th><th>Tanggal</th><th>No Nota</th><th>Pelanggan</th><th>Metode</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Nilai Retur</th><th>Alasan</th><th></th></tr></thead>
+            <tbody>
+                @forelse($returs as $r)
+                <tr>
+                    <td style="font-family:monospace;font-weight:700;">{{ $r->no_retur }}</td>
+                    <td>{{ $r->tanggal->format('d/m/Y H:i') }}</td>
+                    <td style="font-family:monospace;"><a href="{{ route('grosir.penjualan.show', $r->penjualan_id) }}">{{ $r->penjualan?->no_nota ?? '-' }}</a></td>
+                    <td>{{ $r->nama_pelanggan ?? '-' }}</td>
+                    <td><span class="badge badge-pending">{{ $r->metode }}</span></td>
+                    <td style="text-align:center;">{{ $r->items->sum('qty') }}</td>
+                    <td style="text-align:right;font-weight:700;color:#c2410c;">{{ formatRp($r->total) }}</td>
+                    <td style="font-size:.75rem;color:#64748b;">{{ $r->alasan }}</td>
+                    <td><a href="{{ route('grosir.retur.show', $r) }}" class="btn btn-sm btn-secondary"><i class="fas fa-eye"></i></a></td>
+                </tr>
+                @empty
+                <tr><td colspan="9" style="text-align:center;color:#94a3b8;padding:24px;">Tidak ada retur pada periode ini.</td></tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+    @if(method_exists($returs, 'links'))
+    {{ $returs->links() }}
+    @endif
+</div>
+
+@if($returPerProduk->isNotEmpty())
+<div class="card" style="margin-top:16px;">
+    <div class="card-header"><h3>Produk yang Paling Sering Diretur</h3></div>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Produk</th><th style="text-align:center;">Qty Diretur</th><th style="text-align:right;">Nilai Retur</th></tr></thead>
+            <tbody>
+                @foreach($returPerProduk as $r)
+                <tr>
+                    <td><b>{{ $r->nama }}</b></td>
+                    <td style="text-align:center;">{{ $r->qty }}</td>
+                    <td style="text-align:right;color:#c2410c;">{{ formatRp($r->nilai) }}</td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+</div>
+@endif
+@endif
+
 @endsection

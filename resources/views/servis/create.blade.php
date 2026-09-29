@@ -135,7 +135,6 @@
                     </select>
                 </div>
 
-                {{-- Input Nomor WA Teknisi (Auto-fill dari dropdown, tapi bisa diedit) --}}
                 <div class="form-group">
                     <label>No. WA Teknisi</label>
                     <input type="tel" id="noHpTeknisiManual" name="no_hp_teknisi" class="form-input" placeholder="Otomatis terisi dari pilihan teknisi" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
@@ -145,20 +144,16 @@
                 </div>
 
                 <div style="display:grid; grid-template-columns: minmax(180px, 1fr) minmax(280px, 1.8fr); gap: 12px; align-items: end; margin-bottom: 12px;">
-                    {{-- Kolom Kiri: PIN / Sandi --}}
                     <div>
                         <label>PIN / Sandi</label>
                         <input type="password" name="pin" id="pinInput" class="form-input" placeholder="Contoh: 123456" onfocus="this.type='text'" onblur="this.type='password'">
                     </div>
 
-                    {{-- Kolom Kanan: Tombol Kirim + Checkbox Auto --}}
                     <div style="display:flex; flex-direction:column; gap:8px;">
-                        {{-- Tombol Manual (Selalu terlihat) --}}
                         <button type="button" id="btnKirimTeknisi" class="btn btn-primary" style="justify-content:center; align-items:center; gap:8px; padding:10px 16px; font-weight:600;" onclick="kirimWaKeTeknisi()">
                             <i class="fab fa-whatsapp" style="font-size:1.1rem;"></i> Kirim Info ke Teknisi
                         </button>
                         
-                        {{-- Checkbox Auto --}}
                         <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:.78rem; color:#64748b; margin:0; padding:6px 8px; background:#f8fafc; border-radius:6px; border:1px solid #e2e8f0;">
                             <input type="checkbox" id="autoWaTeknisiCheckbox" name="auto_wa_teknisi" value="1" style="width:16px; height:16px; accent-color:#2563eb; cursor:pointer; flex-shrink:0;">
                             <span>Auto kirim ke WA teknisi saat tombol Simpan diklik</span>
@@ -166,7 +161,6 @@
                     </div>
                 </div>
 
-                {{-- FITUR CANVAS GAMBAR POLA --}}
                 <div class="form-group" style="margin-top: 4px;">
                     <label>Gambar Pola Kunci Layar (Opsional)</label>
                     <div style="display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap;">
@@ -198,7 +192,6 @@
                 </div>
             </div>
 
-            {{-- Sparepart Selection (Admin only) --}}
             @if(auth()->user()->isAdmin())
             <div style="margin-top:16px;padding-top:16px;border-top:1px solid #e2e8f0">
                 <h3 style="font-size:.95rem;margin-bottom:12px"><i class="fas fa-puzzle-piece" style="color:var(--accent);margin-right:6px"></i> Sparepart Digunakan</h3>
@@ -229,7 +222,6 @@
             @endif
             @include('servis._sparepart-combobox')
 
-            {{-- Foto Kondisi HP --}}
             <div style="margin-top:16px;padding-top:16px;border-top:1px solid #e2e8f0">
                 <h3 style="font-size:.95rem;margin-bottom:12px"><i class="fas fa-camera" style="color:var(--info);margin-right:6px"></i> Foto Kondisi HP</h3>
                 <div class="form-group">
@@ -239,7 +231,6 @@
                 <div id="fotoPreview" style="display:flex;gap:8px;flex-wrap:wrap"></div>
             </div>
 
-            {{-- AUTO KIRIM WA KE PELANGGAN --}}
             <div style="margin-top:20px; padding:14px 16px; background:linear-gradient(135deg, #dcfce7, #f0fdf4); border:1px solid #bbf7d0; border-radius:10px;">
                 <label style="display:flex; align-items:center; gap:12px; cursor:pointer; margin:0;">
                     <input type="checkbox" id="autoWaCheckbox" name="auto_wa" value="1" checked style="width:22px; height:22px; accent-color:#25D366; cursor:pointer;">
@@ -320,6 +311,86 @@
                 </table>
             </div>
         </div>
+
+        {{-- ✨ CARD BARU: Recent Servis Terbaru (DIFILTER PER CABANG) ✨ --}}
+        @php
+            // 1. Ambil ID cabang dari user yang sedang login
+            $user = auth()->user();
+            $cabangId = $user ? ($user->cabang_id ?? null) : null;
+
+            // 2. Buat query dasar
+            $query = \App\Models\Servis::with('pelanggan');
+
+            // 3. Filter berdasarkan cabang jika user memiliki cabang_id
+            // (Jika user adalah Super Admin dan cabang_id-nya null, ini akan menampilkan semua. 
+            //  Jika Super Admin juga punya aturan khusus, sesuaikan logika di sini).
+            if ($cabangId) {
+                $query->where('cabang_id', $cabangId);
+            }
+
+            // 4. Eksekusi query
+            $recentServis = $query->latest()->limit(5)->get();
+
+            // Mapping warna status (tetap sama, lebih rapi tanpa percabangan bertumpuk)
+            $statusColors = [
+                'Selesai' => ['bg' => '#dcfce7', 'text' => '#166534'],
+                'Proses'  => ['bg' => '#dbeafe', 'text' => '#1e40af'],
+                'Pending' => ['bg' => '#fef3c7', 'text' => '#92400e'],
+            ];
+        @endphp
+
+        <div class="card" style="margin-top: 16px;">
+            <h3 style="font-size:.95rem;margin-bottom:12px; display:flex; align-items:center;">
+                <i class="fas fa-history" style="color:var(--accent);margin-right:6px"></i> Servis Terbaru (Cabang Ini)
+            </h3>
+            <div style="max-height: 300px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
+                <table style="width: 100%; font-size: 0.85rem; border-collapse: collapse;">
+                    <thead style="position: sticky; top: 0; background: #f8fafc; z-index: 1;">
+                        <tr style="border-bottom: 2px solid #e2e8f0;">
+                            <th style="padding: 10px 12px; text-align: left; color: #475569; font-weight: 600;">Kode</th>
+                            <th style="padding: 10px 12px; text-align: left; color: #475569; font-weight: 600;">Pelanggan & Perangkat</th>
+                            <th style="padding: 10px 12px; text-align: left; color: #475569; font-weight: 600;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($recentServis as $s)
+                        @php
+                            $status = $s->status ?? 'Masuk';
+                            // Ambil warna dari mapping, jika tidak ada gunakan default (Masuk)
+                            $style = $statusColors[$status] ?? ['bg' => '#f1f5f9', 'text' => '#475569'];
+                        @endphp
+                        <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.15s;" onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background='transparent'">
+                            <td style="padding: 10px 12px; color: #334155; font-weight: 600; font-family: monospace; font-size: 0.8rem;">
+                                {{ $s->kode_servis ?? $s->kode ?? 'N/A' }}
+                            </td>
+                            <td style="padding: 10px 12px; color: #334155;">
+                                <div style="font-weight: 600;">{{ $s->pelanggan->nama ?? $s->nama_pelanggan ?? 'Umum' }}</div>
+                                <div style="font-size: 0.75rem; color: #64748b; margin-top: 2px;">{{ $s->perangkat ?? '-' }}</div>
+                            </td>
+                            <td style="padding: 10px 12px;">
+                                <span style="padding: 4px 8px; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; background:{{ $style['bg'] }}; color:{{ $style['text'] }};">
+                                    {{ $status }}
+                                </span>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="3" style="padding: 16px; text-align: center; color: #94a3b8; font-style: italic;">
+                                Belum ada data servis di cabang ini.
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            <div style="margin-top: 12px; text-align: right;">
+                <a href="{{ route('servis.index') }}" style="font-size: 0.8rem; color: var(--primary); text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                    Lihat Semua Servis <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+        {{-- ✨ AKHIR CARD BARU ✨ --}}
+
     </div>
 </div>
 
@@ -328,8 +399,6 @@
 function kirimWaKeTeknisi() {
     const teknisiSelect = document.getElementById('teknisiSelect');
     const opt = teknisiSelect.options[teknisiSelect.selectedIndex];
-    
-    // Cek input manual terlebih dahulu, jika kosong pakai dari dropdown
     const manualHp = document.getElementById('noHpTeknisiManual')?.value.trim();
     let hpTeknisi = manualHp || opt.dataset.wa;
 
@@ -344,7 +413,6 @@ function kirimWaKeTeknisi() {
     const perangkat = document.getElementById('perangkatInput').value || 'Tidak disebutkan';
     const kode = document.getElementById('kodeServis').value || 'Menunggu Generate';
 
-    // Format nomor HP ke format internasional (62)
     let rawHp = hpTeknisi.replace(/[^0-9]/g, '');
     let finalHp = rawHp.replace(/^(?:\+?62|0)/, '62');
 
@@ -362,18 +430,14 @@ function kirimWaKeTeknisi() {
     window.open(`https://api.whatsapp.com/send?phone=${finalHp}&text=${encodeURIComponent(pesan)}`, '_blank');
 }
 
-// Auto-fill No. WA Teknisi saat dropdown dipilih (DENGAN PEMBERSIHAN ANGKA)
 document.getElementById('teknisiSelect').addEventListener('change', function() {
     const selectedOption = this.options[this.selectedIndex];
-    // Bersihkan nomor dari spasi, tanda hubung, atau karakter non-angka lainnya
     const hpTeknisi = (selectedOption.getAttribute('data-wa') || '').replace(/[^0-9]/g, '');
     const manualInput = document.getElementById('noHpTeknisiManual');
-    
     if (manualInput) {
         manualInput.value = hpTeknisi;
     }
 });
-// ===== AKHIR LOGIKA KIRIM KE TEKNISI =====
 
 
 // ===== LOGIKA CANVAS GAMBAR POLA =====
@@ -486,7 +550,6 @@ canvas.addEventListener('touchstart', startDrawing, { passive: false });
 canvas.addEventListener('touchmove', moveDrawing, { passive: false });
 canvas.addEventListener('touchend', endDrawing);
 drawPattern();
-// ===== AKHIR LOGIKA CANVAS POLA =====
 
 
 // Pilih pelanggan dari dropdown
@@ -704,7 +767,6 @@ document.querySelectorAll('form[method="POST"]').forEach(form => {
             let rawNoHp = document.getElementById('noHp')?.value.replace(/[^0-9]/g, '') || '';
             const noHp = rawNoHp.replace(/^(?:\+?62|0)/, '62');
             
-            // Validasi: Pastikan nomor HP valid (minimal 10 digit setelah kode negara)
             if (noHp && noHp.length >= 10) {
                 const nama = document.getElementById('namaP')?.value || '';
                 const kodeServis = document.getElementById('kodeServis')?.value || 'Menunggu Generate';
@@ -732,8 +794,6 @@ document.querySelectorAll('form[method="POST"]').forEach(form => {
                 pesan += `Terima kasih telah mempercayakan servis Anda kepada kami. Anda dapat memantau status servis menggunakan kode di atas.`;
                           
                 const waUrl = `https://api.whatsapp.com/send?phone=${noHp}&text=${encodeURIComponent(pesan)}`;
-                
-                // PENTING: Buka secara sinkron (TANPA setTimeout) agar tidak diblokir browser
                 window.open(waUrl, '_blank');
             } else {
                 console.warn('Nomor HP pelanggan tidak valid untuk kirim WA.');
@@ -745,7 +805,6 @@ document.querySelectorAll('form[method="POST"]').forEach(form => {
         if (autoWaTeknisi) {
             const teknisiSelect = document.getElementById('teknisiSelect');
             const opt = teknisiSelect?.options[teknisiSelect.selectedIndex];
-            
             const manualHp = document.getElementById('noHpTeknisiManual')?.value.trim();
             let hpTeknisi = manualHp || opt?.dataset.wa;
             
@@ -753,7 +812,6 @@ document.querySelectorAll('form[method="POST"]').forEach(form => {
                 let rawHp = hpTeknisi.replace(/[^0-9]/g, '');
                 let finalHp = rawHp.replace(/^(?:\+?62|0)/, '62');
 
-                // Validasi nomor WA teknisi
                 if (finalHp && finalHp.length >= 10) {
                     const pola = document.getElementById('polaInput')?.value || '';
                     const pin = document.getElementById('pinInput')?.value || '';
@@ -771,7 +829,6 @@ document.querySelectorAll('form[method="POST"]').forEach(form => {
                     pesan += `------------------------\n`;
                     pesan += `Mohon segera diproses. Jangan bagikan info ini ke pihak lain. Terima kasih.`;
 
-                    // PENTING: Buka secara sinkron (TANPA setTimeout) agar tidak diblokir browser
                     window.open(`https://api.whatsapp.com/send?phone=${finalHp}&text=${encodeURIComponent(pesan)}`, '_blank');
                 }
             }

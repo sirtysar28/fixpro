@@ -2,6 +2,10 @@
 @section('title', 'Dashboard Teknisi')
 
 @section('content')
+
+{{-- ====== CARD BANNER PROMO — paling atas dashboard, semua role (kelola oleh Super Admin) ====== --}}
+@include('layouts.partials.promo-cards')
+
 <style>
 .tk-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 20px; }
 .tk-stat { background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; padding: 18px; transition: transform .2s; }

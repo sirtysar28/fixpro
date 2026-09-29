@@ -74,10 +74,26 @@
     </div>
     <div class="table-wrap">
         <table>
-            <thead><tr><th>Kode</th><th>Nama Sparepart</th><th>Stok Sekarang</th><th>Total Masuk</th><th>Total Keluar</th><th>Profil Stok</th><th>Aktivitas Terakhir</th><th>Aksi</th></tr></thead>
+            <thead>
+                <tr>
+                    <th>Kode</th>
+                    <th>Nama Sparepart</th>
+                    <th>Stok Sekarang</th>
+                    <th title="Akumulasi total barang masuk untuk item ini">Total Masuk</th>
+                    <th title="Akumulasi total barang keluar untuk item ini">Total Keluar</th>
+                    <th>Profil Stok</th>
+                    <th>Aktivitas Terakhir</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
             <tbody>
+                @php $grandTotalKeluarHalaman = 0; @endphp
+                
                 @foreach($stoks as $s)
-                @php $totalAktivitas = ($s->total_masuk ?? 0) + ($s->total_keluar ?? 0); @endphp
+                @php 
+                    $totalAktivitas = ($s->total_masuk ?? 0) + ($s->total_keluar ?? 0); 
+                    $grandTotalKeluarHalaman += ($s->total_keluar ?? 0);
+                @endphp
                 <tr class="srow">
                     <td><strong style="color:var(--primary)">{{ $s->kode }}</strong></td>
                     <td>
@@ -85,21 +101,25 @@
                         <div style="font-size:.7rem;color:#94a3b8">{{ $s->kategori }}{{ $s->merk_hp ? ' • '.$s->merk_hp : '' }}</div>
                     </td>
                     <td>
-                        @if($s->stok == 0)<span class="badge badge-pending">Habis</span>
-                        @elseif($s->stok <= $s->min_alert)<span class="badge badge-proses">{{ $s->stok }}</span>
-                        @else<span class="badge badge-selesai">{{ $s->stok }}</span>@endif
+                        @if($s->stok == 0)
+                            <span class="badge badge-pending">Habis</span>
+                        @elseif(isset($s->min_alert) && $s->stok <= $s->min_alert)
+                            <span class="badge badge-proses">{{ $s->stok }}</span>
+                        @else
+                            <span class="badge badge-selesai">{{ $s->stok }}</span>
+                        @endif
                     </td>
                     <td><span class="mov-badge mov-in"><i class="fas fa-arrow-down"></i> {{ number_format($s->total_masuk ?? 0) }}</span></td>
                     <td><span class="mov-badge mov-out"><i class="fas fa-arrow-up"></i> {{ number_format($s->total_keluar ?? 0) }}</span></td>
                     <td style="min-width:120px">
                         @if($totalAktivitas > 0)
-                        @php $pctMasuk = $totalAktivitas > 0 ? round($s->total_masuk / $totalAktivitas * 100) : 0; @endphp
-                        <div class="stock-bar" title="Masuk: {{ $s->total_masuk }} • Keluar: {{ $s->total_keluar }}">
-                            <div class="b-masuk" style="width:{{ $pctMasuk }}%"></div>
-                        </div>
-                        <div style="font-size:.62rem;color:#94a3b8;margin-top:2px"> turnover {{ $s->total_keluar }} / {{ $s->total_masuk }} </div>
+                            @php $pctMasuk = round($s->total_masuk / $totalAktivitas * 100); @endphp
+                            <div class="stock-bar" title="Masuk: {{ number_format($s->total_masuk) }} • Keluar: {{ number_format($s->total_keluar) }}">
+                                <div class="b-masuk" style="width:{{ $pctMasuk }}%"></div>
+                            </div>
+                            <div style="font-size:.62rem;color:#94a3b8;margin-top:2px"> turnover {{ number_format($s->total_keluar) }} / {{ number_format($s->total_masuk) }} </div>
                         @else
-                        <span style="font-size:.7rem;color:#cbd5e1">belum ada aktivitas</span>
+                            <span style="font-size:.7rem;color:#cbd5e1">belum ada aktivitas</span>
                         @endif
                     </td>
                     <td style="font-size:.76rem;color:#64748b">
@@ -115,15 +135,35 @@
                     </td>
                 </tr>
                 @endforeach
+
+                {{-- BARIS GRAND TOTAL AKUMULASI KELUAR (KHUSUS HALAMAN INI) --}}
+                @if($stoks->count() > 0)
+                <tr style="background:#f8fafc; font-weight:700; border-top:2px solid #e2e8f0;">
+                    <td colspan="4" style="text-align:right; padding:12px 8px; color:#334155; font-size:0.9rem;">
+                        TOTAL AKUMULASI KELUAR (Halaman Ini):
+                    </td>
+                    <td>
+                        <span class="mov-badge mov-out" style="font-size:0.85rem; padding: 4px 12px;">
+                            <i class="fas fa-arrow-up"></i> {{ number_format($grandTotalKeluarHalaman) }}
+                        </span>
+                    </td>
+                    <td colspan="3"></td>
+                </tr>
+                @endif
+
                 @if($stoks->count() === 0)
-                <tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:30px">
-                    <i class="fas fa-inbox" style="font-size:2rem;display:block;margin-bottom:8px;opacity:.4"></i>
-                    Belum ada sparepart ditemukan.
-                </td></tr>
+                <tr>
+                    <td colspan="8" style="text-align:center;color:#94a3b8;padding:30px">
+                        <i class="fas fa-inbox" style="font-size:2rem;display:block;margin-bottom:8px;opacity:.4"></i>
+                        Belum ada sparepart ditemukan.
+                    </td>
+                </tr>
                 @endif
             </tbody>
         </table>
     </div>
-    {{ $stoks->links() }}
+    <div class="p-3">
+        {{ $stoks->links() }}
+    </div>
 </div>
 @endsection

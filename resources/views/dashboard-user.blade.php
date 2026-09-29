@@ -2,6 +2,9 @@
 @section('title', 'Dashboard Saya')
 
 @section('content')
+{{-- ====== CARD BANNER PROMO — paling atas dashboard, semua role (kelola oleh Super Admin) ====== --}}
+@include('layouts.partials.promo-cards')
+
 {{-- Alert Expiry --}}
 @php
     $daysLeft = auth()->user()->daysUntilExpiry();

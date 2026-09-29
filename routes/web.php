@@ -3,6 +3,7 @@
 use App\Http\Controllers\WebsiteController;
 use App\Http\Controllers\WebsiteManagementController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\PromoCardController;
 use App\Http\Controllers\ServisController;
 use App\Http\Controllers\PelangganController;
 use App\Http\Controllers\TeknisiController;
@@ -89,6 +90,14 @@ Route::middleware(['auth', 'active'])->group(function () {
 
     // Dashboard - all roles
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // ===== CARD BANNER PROMO (tampil di dashboard semua role) — CRUD hanya Super Admin =====
+    Route::middleware(\App\Http\Middleware\EnsureSuperAdmin::class)
+        ->prefix('promo-cards')->name('promo-cards.')->group(function () {
+            Route::post('/', [PromoCardController::class, 'store'])->name('store');
+            Route::match(['put', 'patch', 'post'], '/{promo_card}', [PromoCardController::class, 'update'])->name('update');
+            Route::delete('/{promo_card}', [PromoCardController::class, 'destroy'])->name('destroy');
+        });
 
     // Chat routes (all authenticated users)
     Route::get('/chat/messages', [ChatController::class, 'getMessages'])->name('chat.messages');
@@ -267,6 +276,10 @@ Route::middleware(['auth', 'active'])->group(function () {
         // Service Price List (Daftar Harga Service)
         Route::get('/service-prices', [ServicePriceController::class, 'index'])->name('service-prices.index');
         Route::post('/service-prices', [ServicePriceController::class, 'store'])->name('service-prices.store');
+        
+        // FITUR GENERATE OTOMATIS
+        Route::post('/service-prices/generate', [ServicePriceController::class, 'generateMassal'])->name('service-prices.generate');
+        
         Route::put('/service-prices/{servicePrice}', [ServicePriceController::class, 'update'])->name('service-prices.update');
         Route::delete('/service-prices/{servicePrice}', [ServicePriceController::class, 'destroy'])->name('service-prices.destroy');
         Route::get('/api/service-prices/search', [ServicePriceController::class, 'search'])->name('api.service-prices.search');
@@ -365,8 +378,8 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::delete('/admin/languages/keys', [LanguageController::class, 'destroyKey'])->name('admin.languages.keys.destroy');
     });
 
-    // ===== INVOICE SPAREPART — KHUSUS SUPER ADMIN (pusat) =====
-    Route::middleware(\App\Http\Middleware\EnsureSuperAdmin::class)->prefix('invoice')->name('invoice.')->group(function () {
+    // ===== INVOICE SPAREPART — KHUSUS SUPER ADMIN & ADMIN =====
+    Route::middleware('role:Super Admin,Admin')->prefix('invoice')->name('invoice.')->group(function () {
         Route::get('/', [InvoiceSparepartController::class, 'create'])->name('create');
         Route::get('/api/produk', [InvoiceSparepartController::class, 'apiProduk'])->name('api.produk');
         Route::get('/api/harga-khusus', [InvoiceSparepartController::class, 'apiHargaKhusus'])->name('api.khusus');

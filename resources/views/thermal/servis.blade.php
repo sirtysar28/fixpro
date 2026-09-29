@@ -4,50 +4,62 @@
     <meta charset="UTF-8">
     <title>Struk Servis {{ $servis->kode }}</title>
     <style>
+        @php
+            // Lebar kertas thermal (default 58mm) & area cetak aman biar teks tidak terpotong
+            $paperWidth  = (int) ($settings['thermal_width'] ?? 58);
+            $receiptWidth = (int) ($settings['receipt_width'] ?? ($paperWidth === 80 ? 72 : 48));
+        @endphp
         @page {
-            size: {{ $settings['thermal_width'] ?? 80 }}mm auto;
-            margin: 2mm;
+            size: {{ $paperWidth }}mm auto;
+            margin: 0;
         }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { margin: 0; padding: 0; box-sizing: border-box; max-width: 100%; }
+        html, body { width: {{ $paperWidth }}mm; }
         body {
             font-family: 'Courier New', monospace;
-            width: {{ $settings['thermal_width'] ?? 80 }}mm;
-            padding: 2mm;
+            font-size: 9px;
+            line-height: 1.25;
             color: #000;
+            width: {{ $receiptWidth }}mm;
+            margin: 0 auto;
+            padding: 2mm 0;
+            word-wrap: break-word;
+            overflow-wrap: anywhere;
+            word-break: break-word;
         }
 
         /* HEADER */
-        .brand { font-size: 16px; font-weight: bold; letter-spacing: 2px; text-align: center; }
-        .tagline { font-size: 8px; letter-spacing: 2px; text-align: center; }
-        .addr { font-size: 8px; text-align: center; }
-        .telp { font-size: 9px; text-align: center; font-weight: bold; }
+        .brand { font-size: 12px; font-weight: bold; letter-spacing: 1px; text-align: center; }
+        .tagline { font-size: 7px; letter-spacing: 1px; text-align: center; }
+        .addr { font-size: 7px; text-align: center; }
+        .telp { font-size: 8px; text-align: center; font-weight: bold; }
 
         /* DIVIDERS */
-        .divider { border-top: 1px dashed #000; margin: 4px 0; }
-        .divider-double { border-top: 2px solid #000; margin: 4px 0; }
+        .divider { border-top: 1px dashed #000; margin: 3px 0; }
+        .divider-double { border-top: 2px solid #000; margin: 3px 0; }
 
         /* SECTION TITLE */
-        .section-title { text-align: center; font-weight: bold; font-size: 10px; letter-spacing: 2px; padding: 1px 0; }
+        .section-title { text-align: center; font-weight: bold; font-size: 9px; letter-spacing: 1px; padding: 1px 0; }
 
         /* DATA ROWS */
-        .row { display: flex; padding: 1px 0; font-size: 10px; }
-        .row .lbl { width: 105px; }
-        .row .val { flex: 1; font-weight: bold; }
+        .row { display: flex; flex-wrap: wrap; padding: 1px 0; font-size: 9px; }
+        .row .lbl { flex: 0 0 54px; }
+        .row .val { flex: 1 1 60px; font-weight: bold; word-break: break-word; }
 
         /* PAYMENT TOTALS */
-        .pay-row { display: flex; padding: 1px 0; font-size: 10px; }
-        .pay-row .lbl { flex: 1; }
-        .pay-row .val { font-weight: bold; text-align: right; }
-        .pay-row.sisa { font-size: 13px; font-weight: bold; }
+        .pay-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px; padding: 1px 0; font-size: 9px; }
+        .pay-row .lbl { flex: 0 1 auto; }
+        .pay-row .val { flex: 0 1 auto; font-weight: bold; text-align: right; word-break: break-word; }
+        .pay-row.sisa { font-size: 11px; font-weight: bold; }
 
         /* FOOTER */
-        .foot-center { text-align: center; font-size: 9px; padding: 1px 0; }
+        .foot-center { text-align: center; font-size: 8px; padding: 1px 0; }
         .foot-bold { font-weight: bold; }
-        .foot-thx { font-size: 10px; font-weight: bold; letter-spacing: 1px; }
-        .slogan { font-size: 9px; font-style: italic; margin-top: 1px; }
-        .stamp { font-size: 8px; text-align: center; margin-top: 4px; }
+        .foot-thx { font-size: 9px; font-weight: bold; letter-spacing: 0; }
+        .slogan { font-size: 8px; font-style: italic; margin-top: 1px; }
+        .stamp { font-size: 7px; text-align: center; margin-top: 4px; }
 
-        @media print { body { width: {{ $settings['thermal_width'] ?? 80 }}mm; } }
+        @media print { body { width: {{ $receiptWidth }}mm; } }
     </style>
 </head>
 <body>
@@ -78,7 +90,7 @@
 
 {{-- ===== INFO SERVIS ===== --}}
 <div class="row"><span class="lbl">TANGGAL</span><span class="val">: {{ $servis->tanggal?->format('d/m/Y') }}</span></div>
-<div class="row"><span class="lbl">KODE SERVIS</span><span class="val">: {{ $servis->kode }}</span></div>
+<div class="row"><span class="lbl">KODE</span><span class="val">: {{ $servis->kode }}</span></div>
 <div class="row"><span class="lbl">PELANGGAN</span><span class="val">: {{ $servis->pelanggan?->nama ?? '-' }}</span></div>
 <div class="row"><span class="lbl">PERANGKAT</span><span class="val">: {{ $servis->perangkat }}</span></div>
 @if($servis->keluhan)
@@ -102,19 +114,19 @@
 <div class="section-title">GARANSI</div>
 <div class="divider"></div>
 
-<div class="row"><span class="lbl">MASA GARANSI</span><span class="val">: {{ $garansi > 0 ? $garansi . ' HARI' : 'TANPA GARANSI' }}</span></div>
-<div class="row"><span class="lbl">BERLAKU S/D</span><span class="val">: {{ $servis->tanggal_garansi?->format('d/m/Y') ?? '-' }}</span></div>
+<div class="row"><span class="lbl">GARANSI</span><span class="val">: {{ $garansi > 0 ? $garansi . ' HARI' : 'TANPA GARANSI' }}</span></div>
+<div class="row"><span class="lbl">BERLAKU</span><span class="val">: {{ $servis->tanggal_garansi?->format('d/m/Y') ?? '-' }}</span></div>
 
 {{-- ===== FOOTER ===== --}}
 <div class="divider-double"></div>
 
 <div class="foot-center foot-bold">NOTA DIGITAL / PDF</div>
-<div class="foot-center">MOHON DISIMPAN DENGAN BAIK</div>
+<div class="foot-center">MOHON DISIMPAN BAIK</div>
 
 <div class="divider"></div>
 
 <div class="foot-center foot-thx">TERIMA KASIH TELAH MEMILIH</div>
-<div class="brand" style="font-size:13px;margin-top:1px">{{ strtoupper($settings['nama_toko']) }}</div>
+<div class="brand" style="font-size:11px;margin-top:1px">{{ strtoupper($settings['nama_toko']) }}</div>
 @if(!empty($settings['slogan']))
 <div class="slogan">{{ $settings['slogan'] }}</div>
 @endif

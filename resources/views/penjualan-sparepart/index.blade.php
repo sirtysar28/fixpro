@@ -282,9 +282,39 @@ body.dark .pos-page-tab.active { color: #2dd4bf; background: rgba(13,148,136,.15
             </div>
         </form>
         <div class="table-wrap">
-            <table>
+            @php
+                $sumQty = 0;
+                $sumTotal = 0;
+                $sumLaba = 0;
+                
+                // Handle collection (mendukung pagination maupun collection biasa)
+                $items = $penjualans instanceof \Illuminate\Pagination\LengthAwarePaginator ? $penjualans->items() : $penjualans;
+                
+                foreach($items as $p) {
+                    $sumQty += (int)$p->qty;
+                    $sumTotal += (float)$p->total;
+                    $laba = $p->laba_bersih ?? ($p->total - ($p->modal_total ?? 0));
+                    $sumLaba += (float)$laba;
+                }
+            @endphp
+
+            {{-- PERBAIKAN: Ditambahkan style width:100% agar footer tabel tidak "hilang" atau gepeng --}}
+            <table style="width:100%; border-collapse:collapse;">
                 <thead>
-                    <tr><th style="width:36px"><input type="checkbox" id="selectAllSP" onclick="toggleAllSP(this)" title="Pilih semua"></th><th>Kode</th><th>No. Transaksi</th><th>Tanggal</th><th>Sparepart</th><th>Qty</th><th>Harga</th><th>Total</th><th>Laba</th><th>Metode</th><th>Pelanggan</th><th>Aksi</th></tr>
+                    <tr>
+                        <th style="width:36px"><input type="checkbox" id="selectAllSP" onclick="toggleAllSP(this)" title="Pilih semua"></th>
+                        <th>Kode</th>
+                        <th>No. Transaksi</th>
+                        <th>Tanggal</th>
+                        <th>Sparepart</th>
+                        <th style="text-align:right">Qty</th>
+                        <th style="text-align:right">Harga</th>
+                        <th style="text-align:right">Total</th>
+                        <th style="text-align:right">Laba</th>
+                        <th>Metode</th>
+                        <th>Pelanggan</th>
+                        <th>Aksi</th>
+                    </tr>
                 </thead>
                 <tbody>
                     @forelse($penjualans as $p)
@@ -298,10 +328,10 @@ body.dark .pos-page-tab.active { color: #2dd4bf; background: rgba(13,148,136,.15
                         <td style="font-size:.72rem;color:#64748b">{{ $p->no_transaksi ?? '-' }}</td>
                         <td>{{ $p->tanggal?->format('d/m/Y') }}</td>
                         <td>{{ $p->stok?->nama ?? '-' }}</td>
-                        <td>{{ $p->qty }}</td>
-                        <td>{{ formatRp($p->harga_satuan) }}</td>
-                        <td><strong>{{ formatRp($p->total) }}</strong></td>
-                        <td style="color:var(--success);font-weight:700">{{ formatRp($p->laba_bersih ?? ($p->total - $p->modal_total)) }}</td>
+                        <td style="text-align:right">{{ $p->qty }}</td>
+                        <td style="text-align:right">{{ formatRp($p->harga_satuan) }}</td>
+                        <td style="text-align:right"><strong>{{ formatRp($p->total) }}</strong></td>
+                        <td style="text-align:right;color:var(--success);font-weight:700">{{ formatRp($p->laba_bersih ?? ($p->total - ($p->modal_total ?? 0))) }}</td>
                         <td><span class="badge badge-masuk">{{ $p->metode_bayar }}</span></td>
                         <td>{{ $p->pelanggan?->nama ?? 'Umum' }}</td>
                         <td style="white-space:nowrap">
@@ -316,11 +346,36 @@ body.dark .pos-page-tab.active { color: #2dd4bf; background: rgba(13,148,136,.15
                     <tr><td colspan="12" style="text-align:center;color:#94a3b8;padding:20px">Belum ada data penjualan sparepart.</td></tr>
                     @endforelse
                 </tbody>
+                
+                {{-- TAMPILAN TOTAL DI BAWAH TABEL --}}
+                @if($penjualans->count() > 0)
+                <tfoot style="background:#f0fdf4;border-top:2px solid var(--primary)">
+                    <tr>
+                        <td colspan="5" style="text-align:right;font-weight:800;color:#1e293b;padding:14px 16px;font-size:.95rem">
+                            <i class="fas fa-calculator"></i> TOTAL (Halaman Ini)
+                        </td>
+                        <td style="text-align:right;font-weight:800;color:#1e293b;padding:14px 16px;font-size:.95rem">
+                            {{ number_format($sumQty, 0, ',', '.') }}
+                        </td>
+                        <td style="text-align:right;font-weight:800;color:#94a3b8;padding:14px 16px;font-size:.85rem">
+                            -
+                        </td>
+                        <td style="text-align:right;font-weight:800;color:var(--primary);padding:14px 16px;font-size:.95rem">
+                            {{ formatRp($sumTotal) }}
+                        </td>
+                        <td style="text-align:right;font-weight:800;color:var(--success);padding:14px 16px;font-size:.95rem">
+                            {{ formatRp($sumLaba) }}
+                        </td>
+                        <td colspan="3" style="padding:14px 16px;"></td>
+                    </tr>
+                </tfoot>
+                @endif
             </table>
         </div>
         {{ $penjualans->links() }}
     </div>
 </div>
+
 {{-- html5-qrcode library for barcode scanning --}}
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>

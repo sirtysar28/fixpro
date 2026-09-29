@@ -2,6 +2,10 @@
 @section('title', 'Dashboard')
 
 @section('content')
+
+{{-- ====== CARD BANNER PROMO — paling atas dashboard, semua role (kelola oleh Super Admin) ====== --}}
+@include('layouts.partials.promo-cards')
+
 <style>
     /* ===== DASHBOARD STYLES ===== */
     .dash-grid-6 { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; margin-bottom: 18px; }

@@ -19,10 +19,12 @@
                 <div id="fonnteTestResult" style="margin-top:6px;font-size:.74rem"></div>
                 <button type="button" onclick="testFonnteKey()" class="btn btn-secondary btn-sm" style="margin-top:6px"><i class="fas fa-plug"></i> Test Koneksi API Key</button>
             </div>
-            <div class="form-group"><label>Lebar Thermal</label>
-                <div class="text-xs text-muted" style="padding:8px;background:#f0fdf4;border-radius:8px;border:1px solid #bbf7d0;color:#166534">
-                    <i class="fas fa-check-circle"></i> Ukuran thermal printer default: <strong>80mm</strong> (otomatis)
-                </div>
+            <div class="form-group"><label>Lebar Thermal (Printer Struk)</label>
+                <select name="thermal_width" class="form-input">
+                    <option value="58" {{ ($settings['thermal_width'] ?? '58') == '58' ? 'selected' : '' }}>58mm — Printer Mini (default)</option>
+                    <option value="80" {{ ($settings['thermal_width'] ?? '58') == '80' ? 'selected' : '' }}>80mm — Printer Thermal Standar</option>
+                </select>
+                <div class="text-xs text-muted" style="margin-top:4px">Semua cetak struk/nota thermal otomatis memakai ukuran ini. Default <strong>58mm</strong> dengan area cetak aman 48mm supaya teks tidak terpotong kanan/kiri. Perubahan hanya tersimpan oleh Super Admin.</div>
             </div>
 
             <h3 style="font-size:.95rem;margin:20px 0 16px;padding-top:16px;border-top:1px solid #e2e8f0"><i class="fab fa-google" style="color:#4285F4;margin-right:6px"></i>Login Google OAuth</h3>

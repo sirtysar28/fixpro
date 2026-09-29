@@ -6,6 +6,8 @@ use App\Models\Cabang;
 use App\Models\PenjualanGrosir;
 use App\Models\PenjualanGrosirItem;
 use App\Models\PelangganGrosir;
+use App\Models\ReturGrosir;
+use App\Models\ReturGrosirItem;
 use App\Services\GrosirService;
 use App\Services\XlsxWriter;
 use Illuminate\Http\Request;
@@ -14,7 +16,7 @@ class LaporanGrosirController extends Controller
 {
     /**
      * Laporan Grosir multi-tab (semua per cabang aktif):
-     * penjualan | omzet | laba | terlaris | pelanggan | toko | gudang | piutang
+     * penjualan | omzet | laba | terlaris | pelanggan | toko | gudang | piutang | retur
      */
     public function index(Request $request)
     {
@@ -44,6 +46,13 @@ class LaporanGrosirController extends Controller
             return $p->items->sum(fn($i) => ($i->harga_satuan - $i->modal_satuan) * $i->qty) - $p->diskon;
         });
         $piutangSisa = $notas->sum(fn($p) => $p->sisaPiutang());
+
+        // ===== Retur pada periode ini (barang dibeli pelanggan lalu dikembalikan) =====
+        $totalRetur = (float) ReturGrosir::where('cabang_id', $cabangId)
+            ->whereDate('tanggal', '>=', $dari)
+            ->whereDate('tanggal', '<=', $sampai)
+            ->sum('total');
+        $omzetBersih = $omzet - $totalRetur;
 
         // ===== Tab: penjualan (daftar nota) =====
         if ($tab === 'penjualan') {
@@ -140,6 +149,41 @@ class LaporanGrosirController extends Controller
             $data['piutangList'] = $piutangList->sortBy(fn($p) => $p->jatuh_tempo ?? now())->values();
         }
 
+        // ===== Tab: retur (barang yang dibeli via transaksi grosir lalu dikembalikan) =====
+        if ($tab === 'retur') {
+            $returBase = ReturGrosir::with(['penjualan', 'pelanggan', 'user', 'items'])
+                ->where('cabang_id', $cabangId)
+                ->whereDate('tanggal', '>=', $dari)
+                ->whereDate('tanggal', '<=', $sampai);
+
+            $returAll = (clone $returBase)->orderByDesc('tanggal')->get();
+
+            // Ringkasan per metode penyelesaian (Uang Kembali / Tukar Barang / Potong Piutang)
+            $data['returPerMetode'] = $returAll->groupBy('metode')->map(fn($g) => (object) [
+                'metode' => $g->first()->metode,
+                'jumlah' => $g->count(),
+                'nilai' => $g->sum('total'),
+            ])->values();
+
+            // Produk yang paling sering diretur (untuk deteksi masalah kualitas/barang)
+            $data['returPerProduk'] = ReturGrosirItem::whereIn('retur_grosir_id', $returAll->pluck('id'))
+                ->get()
+                ->groupBy('nama')
+                ->map(fn($items) => (object) [
+                    'nama' => $items->first()->nama,
+                    'qty' => $items->sum('qty'),
+                    'nilai' => $items->sum('subtotal'),
+                ])
+                ->sortByDesc('qty')
+                ->values()
+                ->take(25);
+
+            // Daftar retur: semua baris saat export, paginasi saat tampil di layar
+            $data['returs'] = $request->get('export') === '1'
+                ? $returAll
+                : (clone $returBase)->orderByDesc('tanggal')->paginate(25)->withQueryString();
+        }
+
         // ===== Export Excel =====
         if ($request->get('export') === '1') {
             return $this->export($tab, $data, $dari, $sampai);
@@ -148,6 +192,7 @@ class LaporanGrosirController extends Controller
         return view('grosir.laporan.index', array_merge([
             'tab' => $tab, 'dari' => $dari, 'sampai' => $sampai,
             'omzet' => $omzet, 'totalDiskon' => $totalDiskon, 'laba' => $laba, 'piutangSisa' => $piutangSisa,
+            'totalRetur' => $totalRetur, 'omzetBersih' => $omzetBersih,
             'jumlahTransaksi' => $notas->count(),
         ], $data));
     }
@@ -179,6 +224,21 @@ class LaporanGrosirController extends Controller
                 $s->headerRow(['Pelanggan', 'Level', 'Transaksi', 'Omzet', 'Piutang']);
                 foreach (($data['perPelanggan'] ?? []) as $r) {
                     $s->row([$r->nama, $r->level, $r->transaksi, $r->omzet, $r->piutang]);
+                }
+                break;
+            case 'retur':
+                $s->widths([110, 100, 110, 130, 110, 160, 110]);
+                $s->headerRow(['No Retur', 'Tanggal', 'No Nota', 'Pelanggan', 'Metode', 'Alasan', 'Total Retur']);
+                foreach (($data['returs'] ?? collect()) as $r) {
+                    $s->row([
+                        $r->no_retur,
+                        $r->tanggal->format('Y-m-d H:i'),
+                        $r->penjualan?->no_nota ?? '-',
+                        $r->nama_pelanggan ?? '-',
+                        $r->metode,
+                        $r->alasan,
+                        $r->total,
+                    ]);
                 }
                 break;
             default:

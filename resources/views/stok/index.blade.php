@@ -114,7 +114,6 @@
 </div>
 
 <form method="GET" class="card mb-4">
-    {{-- Pertahankan sorting saat filter berubah --}}
     <input type="hidden" name="sort" value="{{ $sort }}">
     <input type="hidden" name="dir" value="{{ $dir }}">
     <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
@@ -209,6 +208,57 @@
     </div>
     {{ $stoks->links() }}
 </div>
+
+{{-- ========================================== --}}
+{{-- TAMBAHAN: Rincian Stok Habis di Bagian Bawah --}}
+{{-- ========================================== --}}
+@php
+    // Mengambil daftar stok habis. 
+    // Prioritas 1: variabel $stokHabisItems dari controller (menampilkan semua data di seluruh halaman).
+    // Prioritas 2 (Fallback): filter dari $stoks halaman aktif (jika controller belum diupdate).
+    $daftarStokHabis = isset($stokHabisItems) && $stokHabisItems->isNotEmpty() 
+        ? $stokHabisItems 
+        : (isset($stoks) ? $stoks->where('stok', 0) : collect());
+@endphp
+
+@if($daftarStokHabis->isNotEmpty())
+<div class="card mt-6" style="border-top: 4px solid var(--danger, #dc2626);">
+    <div style="background:#fee2e2; color:#991b1b; font-weight:700; padding:12px 16px; border-radius:8px 8px 0 0; display:flex; align-items:center; gap:8px;">
+        <i class="fas fa-exclamation-circle"></i> 
+        <span>Rincian Stok Habis ({{ $daftarStokHabis->count() }} item)</span>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Kode</th>
+                    <th>Nama Barang</th>
+                    <th>Kategori</th>
+                    <th>Merk HP</th>
+                    <th>Stok</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($daftarStokHabis as $item)
+                <tr>
+                    <td><strong>{{ $item->kode }}</strong></td>
+                    <td>{{ $item->nama }}</td>
+                    <td><span class="badge badge-masuk">{{ $item->kategori }}</span></td>
+                    <td>{{ $item->merk_hp ?? '-' }}</td>
+                    <td><span class="badge badge-pending">0 (Habis)</span></td>
+                    <td>
+                        <a href="{{ route('stok.edit', $item) }}" class="btn btn-primary btn-xs" title="Tambah Stok">
+                            <i class="fas fa-plus"></i> Isi Stok
+                        </a>
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+</div>
+@endif
 
 <script>
 let currentBarcode = '';

@@ -2,6 +2,10 @@
 @section('title', 'Dashboard Grosir')
 
 @section('content')
+
+{{-- ====== CARD BANNER PROMO — paling atas dashboard, semua role (kelola oleh Super Admin) ====== --}}
+@include('layouts.partials.promo-cards')
+
 <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:20px;">
     <div>
         <h1 style="font-size:1.5rem;margin:0;">📦 Dashboard Grosir</h1>

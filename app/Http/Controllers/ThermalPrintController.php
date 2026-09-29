@@ -64,13 +64,25 @@ class ThermalPrintController extends Controller
     private function getSettings($cabang)
     {
         $cabangId = $cabang?->id ?? 1;
+
+        // Lebar kertas thermal printer (default 58mm - printer mini)
+        $paperWidth = (int) (Setting::get('thermal_width') ?? 58);
+        if (!in_array($paperWidth, [58, 80])) {
+            $paperWidth = 58;
+        }
+
+        // Area cetak aman (printable area) supaya teks tidak terpotong kanan/kiri
+        // Kertas 58mm -> printable ±48mm, kertas 80mm -> printable ±72mm
+        $receiptWidth = $paperWidth === 80 ? 72 : 48;
+
         return [
             'nama_toko' => Setting::get("nama_toko_{$cabangId}") ?? Setting::get('nama_toko') ?? ($cabang?->nama ?? 'FIXPRO'),
             'alamat' => Setting::get("alamat_{$cabangId}") ?? Setting::get('alamat') ?? '',
             'telp' => Setting::get("telp_{$cabangId}") ?? Setting::get('telp') ?? '',
             'tagline' => Setting::get("tagline_{$cabangId}") ?? Setting::get('tagline') ?? 'SMARTPHONE SERVICE CENTER',
             'slogan' => Setting::get("slogan_{$cabangId}") ?? Setting::get('slogan') ?? 'Smart. Fast. Reliable.',
-            'thermal_width' => 80,
+            'thermal_width' => $paperWidth,
+            'receipt_width' => $receiptWidth,
         ];
     }
 }

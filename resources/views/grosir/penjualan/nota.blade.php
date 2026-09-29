@@ -4,49 +4,59 @@
 <meta charset="UTF-8">
 <title>Nota {{ $penjualan_grosir->no_nota }}</title>
 <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Courier New', monospace; background: #f1f5f9; color: #000; font-size: 12px; }
-    .nota { width: 80mm; margin: 20px auto; background: #fff; padding: 12px; }
+    @php
+        // Default printer mini 58mm; area cetak aman 48mm agar teks tidak terpotong
+        $paperWidth   = (int) (\App\Models\Setting::get('thermal_width') ?? 58);
+        if (!in_array($paperWidth, [58, 80])) { $paperWidth = 58; }
+        $receiptWidth = $paperWidth === 80 ? 72 : 48;
+        $is58 = $paperWidth === 58;
+        $fs  = $is58 ? '9px' : '11px';
+        $fss = $is58 ? '8px' : '10.5px';
+    @endphp
+    * { margin: 0; padding: 0; box-sizing: border-box; max-width: 100%; }
+    body { font-family: 'Courier New', monospace; background: #f1f5f9; color: #000; font-size: {{ $fs }}; word-wrap: break-word; overflow-wrap: anywhere; word-break: break-word; }
+    .nota { width: {{ $receiptWidth }}mm; margin: 20px auto; background: #fff; padding: {{ $is58 ? '6px' : '12px' }}; }
 
     /* Header */
     .n-head { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 8px; }
     .n-head .logo { width: 54px; height: 54px; object-fit: cover; border-radius: 8px; margin: 0 auto 6px; display: block; }
-    .n-head h1 { font-size: 15px; letter-spacing: 1px; }
-    .n-head p { font-size: 10.5px; line-height: 1.5; }
-    .n-judul { background: #000; color: #fff; text-align: center; font-weight: bold; font-size: 12.5px; padding: 5px 0; letter-spacing: 2px; margin: 8px 0; }
+    .n-head h1 { font-size: {{ $is58 ? '12px' : '15px' }}; letter-spacing: 0; word-break: break-word; }
+    .n-head p { font-size: {{ $fss }}; line-height: 1.4; }
+    .n-judul { background: #000; color: #fff; text-align: center; font-weight: bold; font-size: {{ $is58 ? '10px' : '12.5px' }}; padding: 5px 0; letter-spacing: 1px; margin: 8px 0; }
 
-    .n-row { display: flex; justify-content: space-between; font-size: 11px; padding: 1.5px 0; }
+    .n-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px; font-size: {{ $fs }}; padding: 1.5px 0; }
+    .n-row > span, .n-row > b { max-width: 100%; word-break: break-word; }
     .n-row b { font-weight: bold; }
 
     .n-pelanggan { border: 1px dashed #000; padding: 7px 8px; margin: 8px 0; }
-    .n-pelanggan .t { font-weight: bold; font-size: 11px; margin-bottom: 3px; }
-    .n-pelanggan .r { display: flex; justify-content: space-between; font-size: 10.5px; }
-    .n-pelanggan .r span:first-child { color: #333; }
+    .n-pelanggan .t { font-weight: bold; font-size: {{ $fs }}; margin-bottom: 3px; }
+    .n-pelanggan .r { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px; font-size: {{ $fss }}; }
+    .n-pelanggan .r span { color: #333; max-width: 100%; word-break: break-word; }
 
-    table.items { width: 100%; border-collapse: collapse; font-size: 10.5px; }
-    table.items th { border-bottom: 1.5px solid #000; padding: 4px 2px; text-align: left; font-size: 10.5px; }
-    table.items td { padding: 4px 2px; vertical-align: top; border-bottom: 1px dotted #999; }
+    table.items { width: 100%; border-collapse: collapse; font-size: {{ $fss }}; table-layout: fixed; }
+    table.items th { border-bottom: 1.5px solid #000; padding: 4px 2px; text-align: left; font-size: {{ $fss }}; }
+    table.items td { padding: 4px 2px; vertical-align: top; border-bottom: 1px dotted #999; word-break: break-word; }
     table.items .r { text-align: right; }
     table.items .c { text-align: center; }
 
-    .n-total { margin-top: 8px; font-size: 11.5px; }
+    .n-total { margin-top: 8px; font-size: {{ $is58 ? '9px' : '11.5px' }}; }
     .n-total .n-row { padding: 2px 0; }
     .n-total .garis { border-top: 2px dashed #000; margin: 5px 0; }
-    .n-total .grand { font-size: 14px; font-weight: bold; }
+    .n-total .grand { font-size: {{ $is58 ? '11px' : '14px' }}; font-weight: bold; }
     .n-total .piutang-box { border: 1.5px dashed #000; padding: 6px 8px; margin-top: 6px; }
-    .n-total .piutang-box .r { display: flex; justify-content: space-between; }
+    .n-total .piutang-box .r { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px; }
 
-    .n-foot { margin-top: 12px; text-align: center; font-size: 9.5px; line-height: 1.6; border-top: 1px dashed #000; padding-top: 8px; }
-    .n-ttd { margin-top: 16px; display: flex; justify-content: space-between; text-align: center; font-size: 10.5px; }
+    .n-foot { margin-top: 12px; text-align: center; font-size: {{ $is58 ? '7.5px' : '9.5px' }}; line-height: 1.6; border-top: 1px dashed #000; padding-top: 8px; }
+    .n-ttd { margin-top: 16px; display: flex; justify-content: space-between; text-align: center; font-size: {{ $is58 ? '8.5px' : '10.5px' }}; }
     .n-ttd .kolom { width: 45%; }
-    .n-ttd .garis-ttd { margin-top: 34px; border-top: 1px solid #000; padding-top: 3px; }
+    .n-ttd .garis-ttd { margin-top: 34px; border-top: 1px solid #000; padding-top: 3px; word-break: break-word; }
 
-    .btn-print { display: block; width: 80mm; margin: 0 auto 0; padding: 10px; background: #0d9488; color: #fff; border: none; font-family: inherit; font-weight: bold; font-size: 13px; cursor: pointer; border-radius: 8px 8px 0 0; }
+    .btn-print { display: block; width: {{ $receiptWidth }}mm; margin: 0 auto 0; padding: 10px; background: #0d9488; color: #fff; border: none; font-family: inherit; font-weight: bold; font-size: 13px; cursor: pointer; border-radius: 8px 8px 0 0; }
     @media print {
-        body { background: #fff; }
+        html, body { width: {{ $paperWidth }}mm; background: #fff; margin: 0; }
         .btn-print { display: none; }
-        .nota { margin: 0; width: 100%; }
-        @page { margin: 4mm; }
+        .nota { margin: 0 auto; width: {{ $receiptWidth }}mm; padding: 2mm 0; box-shadow: none; }
+        @page { size: {{ $paperWidth }}mm auto; margin: 0; }
     }
 </style>
 </head>
@@ -77,7 +87,7 @@
         <div class="r"><span>Level Harga</span><span>{{ $penjualan_grosir->labelLevelHarga() }}</span></div>
         <div class="r"><span>No. HP</span><span>{{ $penjualan_grosir->pelanggan?->no_hp ?? '-' }}</span></div>
         @if($penjualan_grosir->alamat_kirim)
-        <div class="r"><span>Kirim ke</span><span style="text-align:right;max-width:55%;">{{ \Illuminate\Support\Str::limit($penjualan_grosir->alamat_kirim, 60) }}</span></div>
+        <div class="r"><span>Kirim ke</span><span style="text-align:right;max-width:55%;word-break:break-word">{{ \Illuminate\Support\Str::limit($penjualan_grosir->alamat_kirim, 60) }}</span></div>
         @endif
     </div>
 

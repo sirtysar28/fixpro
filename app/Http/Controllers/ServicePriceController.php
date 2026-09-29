@@ -144,6 +144,80 @@ class ServicePriceController extends Controller
     }
 
     /**
+     * Generate harga service secara massal/otomatis berdasarkan merk dan estimasi harga dasar.
+     */
+    public function generateMassal(Request $request)
+    {
+        $request->validate([
+            'merk' => 'required|string|max:100',
+            'base_price' => 'required|string',
+        ]);
+
+        $merk = $request->merk;
+        // Bersihkan format rupiah menjadi angka integer (hapus titik dan koma)
+        $basePrice = (int) str_replace(['.', ','], '', $request->base_price); 
+
+        // Daftar kategori tipe HP umum untuk variasi harga
+        $tipes = ['Seri A / Entry', 'Seri Note / Mid', 'Seri Flagship / Pro', 'Seri Lite / SE']; 
+        
+        // Template jasa otomatis dengan multiplier harga berdasarkan base_price
+        $jasaTemplates = [
+            ['kerusakan' => 'Ganti LCD Original', 'kategori' => 'ganti-sparepart', 'multiplier' => 1.5],
+            ['kerusakan' => 'Ganti LCD OEM (High Quality)', 'kategori' => 'ganti-sparepart', 'multiplier' => 0.8],
+            ['kerusakan' => 'Ganti Baterai', 'kategori' => 'ganti-sparepart', 'multiplier' => 0.4],
+            ['kerusakan' => 'Ganti Kamera Belakang', 'kategori' => 'ganti-sparepart', 'multiplier' => 0.6],
+            ['kerusakan' => 'Ganti Kamera Depan', 'kategori' => 'ganti-sparepart', 'multiplier' => 0.3],
+            ['kerusakan' => 'Ganti Speaker / Buzzer', 'kategori' => 'ganti-sparepart', 'multiplier' => 0.3],
+            ['kerusakan' => 'Ganti Flexing Charger', 'kategori' => 'ganti-sparepart', 'multiplier' => 0.3],
+            ['kerusakan' => 'Ganti Housing / Casing Belakang', 'kategori' => 'ganti-sparepart', 'multiplier' => 0.5],
+            ['kerusakan' => 'Flash Ulang / Reset Factory', 'kategori' => 'software', 'multiplier' => 0.2],
+            ['kerusakan' => 'Atasi Bootloop / Stuck Logo', 'kategori' => 'software', 'multiplier' => 0.25],
+            ['kerusakan' => 'Perbaikan Kena Air (Water Damage)', 'kategori' => 'water-damage', 'multiplier' => 0.5],
+            ['kerusakan' => 'Unlock / Bypass Akun (Jika tersedia)', 'kategori' => 'unlock', 'multiplier' => 0.4],
+        ];
+
+        $cabangId = null;
+        // Cek apakah user ingin global atau spesifik cabang (konsisten dengan method store)
+        if (!($request->has('is_global') && $request->is_global)) {
+            $cabangId = auth()->user()->getEffectiveCabangId();
+        }
+
+        $dataToInsert = [];
+        $now = now();
+        $userId = auth()->id();
+
+        foreach ($tipes as $tipe) {
+            foreach ($jasaTemplates as $template) {
+                $harga = round($basePrice * $template['multiplier'], -3); // Pembulatan ke ribuan terdekat
+                if ($harga < 50000) $harga = 50000; // Harga minimum Rp 50.000
+
+                $dataToInsert[] = [
+                    'cabang_id'    => $cabangId,
+                    'merk_hp'      => $merk,
+                    'tipe_hp'      => trim($merk . ' ' . $tipe), 
+                    'kerusakan'    => $template['kerusakan'],
+                    'kategori'     => $template['kategori'],
+                    'harga_jasa'   => $harga,
+                    'deskripsi'    => 'Harga estimasi otomatis untuk ' . $merk . '. Termasuk ongkos pasang.',
+                    'aktif'        => 1,
+                    'created_by'   => $userId,
+                    'created_at'   => $now,
+                    'updated_at'   => $now,
+                ];
+            }
+        }
+
+        // Insert ke database (gunakan chunk untuk menghindari limit query SQL)
+        foreach (array_chunk($dataToInsert, 500) as $chunk) {
+            ServicePrice::insert($chunk);
+        }
+
+        AuditLogService::log('service_price', 'generate', "Men-generate massal harga jasa untuk merk: {$merk} (Base: Rp " . number_format($basePrice) . ")");
+
+        return redirect()->route('service-prices.index')->with('success', "✅ Berhasil men-generate " . count($dataToInsert) . " daftar harga service untuk merk {$merk}!");
+    }
+
+    /**
      * API: cari harga jasa berdasarkan keluhan/kerusakan (autocomplete di form input servis)
      */
     public function search(Request $request)

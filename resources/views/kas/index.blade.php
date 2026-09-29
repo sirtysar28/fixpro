@@ -84,7 +84,6 @@
             </div>
             <div class="form-group">
                 <label>Jumlah (Rp) *</label>
-                <!-- FITUR BARU: ID ditambahkan untuk JS Auto-Format -->
                 <input type="text" inputmode="numeric" name="jml" id="kasJml" class="form-input" required placeholder="0" data-format-rupiah>
             </div>
         </div>
@@ -122,6 +121,23 @@
 <!-- Table -->
 <div class="card">
     <div class="table-wrap">
+        @php
+            // Hitung total masuk dan keluar KHUSUS untuk halaman (page) yang sedang aktif
+            $totalMasukPage = 0;
+            $totalKeluarPage = 0;
+            
+            // $kass->items() hanya mengambil data di halaman saat ini (mendukung pagination)
+            $items = $kass instanceof \Illuminate\Pagination\LengthAwarePaginator ? $kass->items() : $kass;
+            
+            foreach($items as $k) {
+                if ($k->tipe === 'masuk') {
+                    $totalMasukPage += (float)$k->jml;
+                } else {
+                    $totalKeluarPage += (float)$k->jml;
+                }
+            }
+        @endphp
+
         <table style="width:100%; border-collapse:collapse;">
             <thead>
                 <tr style="background:#f8fafc; text-align:left;">
@@ -172,6 +188,26 @@
                 </tr>
                 @endforelse
             </tbody>
+            
+            {{-- TAMPILAN TOTAL DI BAWAH TABEL (Per Halaman) --}}
+            @if($kass->count() > 0)
+            <tfoot style="background:#f0fdf4; border-top:2px solid #16a34a; font-weight:700;">
+                <tr>
+                    <td colspan="5" style="padding:14px 12px; text-align:right; color:#1e293b; font-size:0.9rem;">
+                        <i class="fas fa-calculator"></i> Total Halaman Ini:
+                    </td>
+                    <td style="padding:14px 12px; text-align:right;">
+                        <div style="color:#16a34a; font-size:0.85rem; margin-bottom:4px;">
+                            Masuk: {{ formatRp($totalMasukPage) }}
+                        </div>
+                        <div style="color:#dc2626; font-size:0.95rem; border-top:1px dashed #cbd5e1; padding-top:4px;">
+                            Keluar: {{ formatRp($totalKeluarPage) }}
+                        </div>
+                    </td>
+                    <td colspan="2" style="padding:14px 12px;"></td>
+                </tr>
+            </tfoot>
+            @endif
         </table>
     </div>
     <div style="padding:16px;">
@@ -213,7 +249,6 @@ document.getElementById('kasJml').addEventListener('input', function (e) {
 document.querySelector('form').addEventListener('submit', function(e) {
     let jmlInput = document.getElementById('kasJml');
     let cleanValue = jmlInput.value.replace(/[^0-9]/g, '');
-    // Buat hidden input atau ubah value langsung (tergantung setup backend, biasanya Laravel bisa handle string angka)
     jmlInput.value = cleanValue; 
 });
 </script>

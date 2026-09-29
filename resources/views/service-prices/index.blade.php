@@ -7,7 +7,8 @@
     <div style="display:flex;gap:8px;align-items:center">
         <span style="font-size:.78rem;color:#64748b">{{ $totalItems }} item aktif</span>
         <a href="{{ request()->fullUrlWithQuery(['show_all' => 1]) }}" class="btn btn-secondary btn-sm"><i class="fas fa-eye"></i> Tampil Semua</a>
-        <button type="button" class="btn btn-primary btn-sm" onclick="toggleAddForm()"><i class="fas fa-plus"></i> Tambah Harga</button>
+        <button type="button" class="btn btn-success btn-sm" onclick="openGenerateModal()"><i class="fas fa-magic"></i> Generate Otomatis</button>
+        <button type="button" class="btn btn-primary btn-sm" onclick="toggleAddForm()"><i class="fas fa-plus"></i> Tambah Manual</button>
     </div>
 </div>
 
@@ -35,16 +36,25 @@
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
             <div class="form-group">
                 <label>Merk HP (opsional)</label>
-                <input type="text" name="merk_hp" class="form-input" placeholder="Contoh: Apple, Samsung, Xiaomi">
+                <input type="text" name="merk_hp" class="form-input" list="datalistMerk" placeholder="Ketik atau pilih merk...">
+                <datalist id="datalistMerk">
+                    @foreach($merkList as $m) <option value="{{ $m }}">{{ $m }}</option> @endforeach
+                </datalist>
             </div>
             <div class="form-group">
                 <label>Tipe / Model HP (opsional)</label>
-                <input type="text" name="tipe_hp" class="form-input" placeholder="Contoh: iPhone 14, Galaxy S23">
+                <input type="text" name="tipe_hp" class="form-input" list="datalistTipe" placeholder="Ketik atau pilih tipe...">
+                <datalist id="datalistTipe">
+                    <!-- Bisa diisi dinamis via JS atau dibiarkan untuk input bebas -->
+                    <option value="iPhone 14"><option value="iPhone 15"><option value="Galaxy S23"><option value="Galaxy S24">
+                    <option value="Redmi Note 13"><option value="Poco X6 Pro"><option value="Oppo Reno 11">
+                </datalist>
             </div>
         </div>
         <div class="form-group">
             <label>Jenis Kerusakan / Jasa *</label>
-            <input type="text" name="kerusakan" class="form-input" required placeholder="Contoh: Ganti LCD, Ganti Baterai, Unlock iCloud">
+            <input type="text" name="kerusakan" id="inputKerusakan" class="form-input" required placeholder="Contoh: Ganti LCD, Bootloop, Lupa Pola" autocomplete="off">
+            <div class="text-xs text-muted" style="margin-top:4px"><i class="fas fa-info-circle"></i> Kategori akan otomatis terpilih berdasarkan kata kunci yang Anda ketik.</div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
             <div class="form-group">
@@ -53,7 +63,7 @@
             </div>
             <div class="form-group">
                 <label>Kategori</label>
-                <select name="kategori" class="form-input">
+                <select name="kategori" id="selectKategori" class="form-input">
                     <option value="umum">Umum</option>
                     <option value="hardware">Hardware</option>
                     <option value="software">Software</option>
@@ -70,10 +80,9 @@
         </div>
         <div class="form-group">
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-                <input type="checkbox" name="is_global" value="1" style="width:18px;height:18px;accent-color:var(--primary)">
+                <input type="checkbox" name="is_global" value="1" checked style="width:18px;height:18px;accent-color:var(--primary)">
                 <span>Berlaku Global (semua cabang)</span>
             </label>
-            <div class="text-xs text-muted" style="margin-top:2px">Centang jika harga ini berlaku untuk semua cabang. Jika tidak dicentang, hanya berlaku untuk cabang Anda.</div>
         </div>
         <div style="display:flex;gap:8px">
             <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Simpan</button>
@@ -145,18 +154,14 @@
                         <span style="color:#94a3b8;font-size:.8rem">Semua Merk</span>
                         @endif
                     </td>
-                    <td>
-                        <strong>{{ $sp->kerusakan }}</strong>
-                    </td>
+                    <td><strong>{{ $sp->kerusakan }}</strong></td>
                     <td>
                         <span class="badge badge-{{ $sp->kategori === 'hardware' ? 'pending' : ($sp->kategori === 'software' ? 'proses' : 'normal') }}">
                             {{ ucfirst($sp->kategori) }}
                         </span>
                     </td>
                     <td style="font-size:.78rem;color:#64748b">{{ $sp->deskripsi ?? '-' }}</td>
-                    <td>
-                        <strong style="color:var(--success);font-size:.95rem">{{ formatRp($sp->harga_jasa) }}</strong>
-                    </td>
+                    <td><strong style="color:var(--success);font-size:.95rem">{{ formatRp($sp->harga_jasa) }}</strong></td>
                     <td>
                         @if($sp->cabang_id)
                         <span style="font-size:.72rem;color:#64748b"><i class="fas fa-store"></i> {{ $sp->cabang?->nama ?? 'Cabang' }}</span>
@@ -189,9 +194,7 @@
             </tbody>
         </table>
     </div>
-    <div style="margin-top:12px">
-        {{ $prices->links() }}
-    </div>
+    <div style="margin-top:12px">{{ $prices->links() }}</div>
 </div>
 
 <!-- Modal Edit -->
@@ -203,11 +206,11 @@
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                 <div class="form-group">
                     <label>Merk HP</label>
-                    <input type="text" name="merk_hp" id="editMerk" class="form-input">
+                    <input type="text" name="merk_hp" id="editMerk" class="form-input" list="datalistMerk">
                 </div>
                 <div class="form-group">
                     <label>Tipe HP</label>
-                    <input type="text" name="tipe_hp" id="editTipe" class="form-input">
+                    <input type="text" name="tipe_hp" id="editTipe" class="form-input" list="datalistTipe">
                 </div>
             </div>
             <div class="form-group">
@@ -217,7 +220,7 @@
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                 <div class="form-group">
                     <label>Harga Jasa (Rp) *</label>
-                    <input type="text" inputmode="numeric" name="harga_jasa" id="editHarga" class="form-input" required>
+                    <input type="text" inputmode="numeric" name="harga_jasa" id="editHarga" class="form-input" required data-format-rupiah>
                 </div>
                 <div class="form-group">
                     <label>Kategori</label>
@@ -250,26 +253,102 @@
     </div>
 </div>
 
+<!-- Modal Generate Otomatis -->
+<div id="generateModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center">
+    <div style="background:#fff;border-radius:16px;padding:28px;max-width:450px;width:90%">
+        <h3 style="font-size:1rem;margin-bottom:16px"><i class="fas fa-magic" style="color:var(--primary);margin-right:6px"></i> Generate Harga Massal</h3>
+        <form method="POST" action="{{ route('service-prices.generate') }}">
+            @csrf
+            <div class="form-group">
+                <label>Pilih Merk HP</label>
+                <select name="merk" class="form-input" required>
+                    <option value="">-- Pilih Merk --</option>
+                    @foreach($merkList as $m)
+                        <option value="{{ $m }}">{{ $m }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Estimasi Harga Dasar LCD (Rp)</label>
+                <input type="text" name="base_price" class="form-input" value="400.000" data-format-rupiah required>
+            </div>
+            <p class="text-xs text-muted" style="margin-bottom:16px">
+                <i class="fas fa-info-circle"></i> Sistem akan otomatis membuat daftar harga untuk: Ganti LCD, Baterai, Kamera, Speaker, Flexing, dan Software untuk semua tipe di merk ini.
+            </p>
+            <div style="display:flex;gap:8px">
+                <button type="submit" class="btn btn-success" style="flex:1"><i class="fas fa-cogs"></i> Proses Generate</button>
+                <button type="button" class="btn btn-secondary" onclick="closeGenerateModal()">Batal</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
+// 1. Toggle Form
 function toggleAddForm() {
     const panel = document.getElementById('addFormPanel');
     panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
 }
 
+// 2. Auto-Format Rupiah
+function formatRupiahInput(input) {
+    let value = input.value.replace(/[^,\d]/g, '').toString();
+    let split = value.split(',');
+    let sisa = split[0].length % 3;
+    let rupiah = split[0].substr(0, sisa);
+    let ribuan = split[0].substr(sisa).match(/\d{3}/gi);
+    if (ribuan) {
+        let separator = sisa ? '.' : '';
+        rupiah += separator + ribuan.join('.');
+    }
+    rupiah = split[1] != undefined ? rupiah + ',' + split[1] : rupiah;
+    input.value = rupiah;
+}
+document.querySelectorAll('input[data-format-rupiah]').forEach(input => {
+    input.addEventListener('keyup', function(e) { formatRupiahInput(this); });
+});
+
+// 3. Auto-Deteksi Kategori Berdasarkan Kata Kunci Kerusakan
+document.getElementById('inputKerusakan').addEventListener('input', function(e) {
+    const val = e.target.value.toLowerCase();
+    const kategoriSelect = document.getElementById('selectKategori');
+    
+    if (val.includes('lcd') || val.includes('baterai') || val.includes('kamera') || val.includes('casing') || val.includes('speaker')) {
+        kategoriSelect.value = 'ganti-sparepart';
+    } else if (val.includes('flash') || val.includes('bootloop') || val.includes('lupa') || val.includes('password') || val.includes('reset')) {
+        kategoriSelect.value = 'software';
+    } else if (val.includes('ic ') || val.includes('mati total') || val.includes('short') || val.includes('jalur')) {
+        kategoriSelect.value = 'hardware';
+    } else if (val.includes('icloud') || val.includes('frp') || val.includes('mi account') || val.includes('unlock') || val.includes('bypass')) {
+        kategoriSelect.value = 'unlock';
+    } else if (val.includes('air') || val.includes('water') || val.includes('korosi') || val.includes('basah')) {
+        kategoriSelect.value = 'water-damage';
+    } else {
+        kategoriSelect.value = 'umum';
+    }
+});
+
+// 4. Modal Edit Logic
 function editHarga(id, merk, tipe, kerusakan, deskripsi, harga, kategori, aktif) {
     document.getElementById('editForm').action = '/service-prices/' + id;
     document.getElementById('editMerk').value = merk;
     document.getElementById('editTipe').value = tipe;
     document.getElementById('editKerusakan').value = kerusakan;
     document.getElementById('editDeskripsi').value = deskripsi;
-    document.getElementById('editHarga').value = harga;
+    
+    // Format harga saat masuk ke modal edit
+    let cleanHarga = harga.toString().replace(/\D/g, '');
+    document.getElementById('editHarga').value = cleanHarga;
+    formatRupiahInput(document.getElementById('editHarga'));
+    
     document.getElementById('editKategori').value = kategori;
     document.getElementById('editAktif').checked = aktif == 1;
     document.getElementById('editModal').style.display = 'flex';
 }
+function closeEditModal() { document.getElementById('editModal').style.display = 'none'; }
 
-function closeEditModal() {
-    document.getElementById('editModal').style.display = 'none';
-}
+// 5. Modal Generate Logic
+function openGenerateModal() { document.getElementById('generateModal').style.display = 'flex'; }
+function closeGenerateModal() { document.getElementById('generateModal').style.display = 'none'; }
 </script>
 @endsection

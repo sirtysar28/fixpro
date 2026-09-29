@@ -4,33 +4,44 @@
     <meta charset="UTF-8">
     <title>Struk Jual Beli HP</title>
     <style>
+        @php
+            $paperWidth   = (int) ($settings['thermal_width'] ?? 58);
+            $receiptWidth = (int) ($settings['receipt_width'] ?? ($paperWidth === 80 ? 72 : 48));
+        @endphp
         @page {
-            size: {{ $settings['thermal_width'] ?? 80 }}mm auto;
-            margin: 2mm;
+            size: {{ $paperWidth }}mm auto;
+            margin: 0;
         }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { margin: 0; padding: 0; box-sizing: border-box; max-width: 100%; }
+        html, body { width: {{ $paperWidth }}mm; }
         body {
             font-family: 'Courier New', monospace;
-            font-size: 11px;
-            width: {{ $settings['thermal_width'] ?? 80 }}mm;
-            padding: 2mm;
+            font-size: 9px;
+            line-height: 1.25;
+            width: {{ $receiptWidth }}mm;
+            margin: 0 auto;
+            padding: 2mm 0;
             color: #000;
+            word-wrap: break-word;
+            overflow-wrap: anywhere;
+            word-break: break-word;
         }
         .text-center { text-align: center; }
         .text-right { text-align: right; }
         .bold { font-weight: bold; }
-        .text-sm { font-size: 10px; }
-        .text-xs { font-size: 9px; }
-        .text-xl { font-size: 16px; }
-        .divider { border-top: 1px dashed #000; margin: 4px 0; }
-        .divider-double { border-top: 2px solid #000; margin: 4px 0; }
-        .row { display: flex; justify-content: space-between; padding: 1px 0; }
-        .section-title { font-weight: bold; text-align: center; margin: 4px 0; font-size: 10px; letter-spacing: 1px; }
+        .text-sm { font-size: 8px; }
+        .text-xs { font-size: 7px; }
+        .text-xl { font-size: 12px; }
+        .divider { border-top: 1px dashed #000; margin: 3px 0; }
+        .divider-double { border-top: 2px solid #000; margin: 3px 0; }
+        .row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px; padding: 1px 0; }
+        .row > span { max-width: 100%; word-break: break-word; }
+        .section-title { font-weight: bold; text-align: center; margin: 3px 0; font-size: 9px; letter-spacing: 0; }
         .garis { height: 1px; background: #000; margin: 3px 0; }
         .mt-2 { margin-top: 4px; }
         .mb-2 { margin-bottom: 4px; }
         .mt-4 { margin-top: 8px; }
-        @media print { body { width: {{ $settings['thermal_width'] ?? 80 }}mm; } }
+        @media print { body { width: {{ $receiptWidth }}mm; } }
     </style>
 </head>
 <body>
@@ -77,7 +88,7 @@
     {{-- RINCIAN --}}
     <div class="divider-double"></div>
     <div class="section-title mt-2">RINCIAN BAYAR</div>
-    <div class="row bold" style="font-size:14px">
+    <div class="row bold" style="font-size:11px">
         <span>Harga:</span>
         <span>Rp {{ number_format($jualBeli->harga) }}</span>
     </div>

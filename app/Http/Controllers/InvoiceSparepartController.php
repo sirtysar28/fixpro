@@ -895,12 +895,14 @@ class InvoiceSparepartController extends Controller
         }, 'Invoice_' . $invoice->no_invoice . '.pdf', ['Content-Type' => 'application/pdf']);
     }
 
-    public function thermal(InvoiceSparepart $invoice, string $size = '80')
+    public function thermal(InvoiceSparepart $invoice, string $size = '58')
     {
         $this->checkCabangAccess($invoice);
-        $size = in_array($size, ['58', '80']) ? $size : '80';
+        $size = in_array($size, ['58', '80']) ? $size : '58';
         $data = $this->buildInvoiceData($invoice);
         $data['thermal_width'] = $size;
+        // Area cetak aman agar teks tidak terpotong (58mm -> 48mm, 80mm -> 72mm)
+        $data['receipt_width'] = $size === '80' ? 72 : 48;
         return view('invoice.thermal', $data);
     }
 

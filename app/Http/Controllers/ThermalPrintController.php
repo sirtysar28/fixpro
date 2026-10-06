@@ -11,9 +11,6 @@ use Illuminate\Http\Request;
 
 class ThermalPrintController extends Controller
 {
-    /**
-     * Print struk servis ke thermal printer
-     */
     public function servis(Servis $servis)
     {
         $servis->load(['pelanggan', 'teknisi', 'cabang']);
@@ -23,36 +20,42 @@ class ThermalPrintController extends Controller
         return view('thermal.servis', compact('servis', 'cabang', 'settings'));
     }
 
-    /**
-     * Print struk penjualan sparepart
-     */
     public function penjualanSparepart(PenjualanSparepart $penjualan_sparepart)
     {
         $penjualan_sparepart->load(['stok', 'pelanggan', 'user', 'cabang']);
 
-        // Load semua item dalam transaksi yang sama
-        $siblings = collect([]);
-        $allItems = collect([$penjualan_sparepart]);
+        // 1. Ambil SEMUA item dengan no_transaksi yang sama
         if ($penjualan_sparepart->no_transaksi) {
-            $siblings = PenjualanSparepart::with('stok')
+            $allItems = PenjualanSparepart::with('stok')
                 ->where('no_transaksi', $penjualan_sparepart->no_transaksi)
-                ->where('id', '!=', $penjualan_sparepart->id)
-                ->get();
-            $allItems = $allItems->merge($siblings);
+                ->get()
+                ->unique('id'); // KUNCI: Hapus duplikat berdasarkan ID
+        } else {
+            $allItems = collect([$penjualan_sparepart]);
         }
 
+        // 2. Hitung total keseluruhan dari seluruh item
         $totalKeseluruhan = $allItems->sum('total');
-        $diskon = $penjualan_sparepart->diskon ?? 0;
+        
+        // 3. KUNCI ANTI-DOBEL: Ambil diskon HANYA dari item pertama (Null-safe)
+        $diskon = $allItems->first()?->diskon ?? 0;
+        
         $totalSetelahDiskon = $totalKeseluruhan - $diskon;
+        
         $cabang = $penjualan_sparepart->cabang;
         $settings = $this->getSettings($cabang);
 
-        return view('thermal.penjualan-sparepart', compact('penjualan_sparepart', 'siblings', 'allItems', 'totalKeseluruhan', 'diskon', 'totalSetelahDiskon', 'cabang', 'settings'));
+        return view('thermal.penjualan-sparepart', compact(
+            'penjualan_sparepart', 
+            'allItems', 
+            'totalKeseluruhan', 
+            'diskon', 
+            'totalSetelahDiskon', 
+            'cabang', 
+            'settings'
+        ));
     }
 
-    /**
-     * Print struk jual beli HP
-     */
     public function jualBeli(JualBeli $jualBeli)
     {
         $cabang = Cabang::find(auth()->user()->getActiveCabangId());
@@ -65,14 +68,11 @@ class ThermalPrintController extends Controller
     {
         $cabangId = $cabang?->id ?? 1;
 
-        // Lebar kertas thermal printer (default 58mm - printer mini)
         $paperWidth = (int) (Setting::get('thermal_width') ?? 58);
         if (!in_array($paperWidth, [58, 80])) {
             $paperWidth = 58;
         }
 
-        // Area cetak aman (printable area) supaya teks tidak terpotong kanan/kiri
-        // Kertas 58mm -> printable ±48mm, kertas 80mm -> printable ±72mm
         $receiptWidth = $paperWidth === 80 ? 72 : 48;
 
         return [

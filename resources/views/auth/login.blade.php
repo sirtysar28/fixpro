@@ -4,22 +4,16 @@
     // 1. Deteksi Tab Register
     $showRegister = request()->query('tab') === 'register' || request()->is('register') || $errors->has('name') || $errors->has('nama_toko') || $errors->has('phone') || old('tab') === 'register';
     
-    // 2. Deteksi Tab Forgot Password (Berfungsi saat ada error validasi email dari form forgot, atau ada status sukses)
+    // 2. Deteksi Tab Forgot Password
     $showForgot = old('form_type') === 'forgot' || session('status');
     
-    // 3. Default ke Login jika bukan register atau forgot
+    // 3. Default ke Login
     $showLogin = !$showRegister && !$showForgot;
 @endphp
 
 <!-- STYLES -->
 <style>
-/* === LOADING SPINNER STYLES === */
-@keyframes spin { to { transform: rotate(360deg); } }
-.btn-spinner { display: none; align-items: center; justify-content: center; gap: 8px; }
-.btn-spinner svg { animation: spin 1s linear infinite; width: 20px; height: 20px; }
-.b.bp:disabled { opacity: 0.9; cursor: wait; }
-
-/* === FORM OPTIONS (Remember & Forgot) === */
+/* === FORM OPTIONS === */
 .form-options {
     display: flex;
     justify-content: space-between;
@@ -45,14 +39,36 @@
     color: #16a34a;
     text-decoration: none;
     font-weight: 600;
-    transition: color 0.2s;
+    transition: all 0.2s;
     background: none;
     border: none;
-    padding: 0;
+    padding: 4px 8px;
+    border-radius: 6px;
     font-size: 0.85rem;
     cursor: pointer;
 }
-.forgot-link:hover { color: #15803d; text-decoration: underline; }
+.forgot-link:hover { color: #15803d; background: #f0fdf4; text-decoration: none; }
+
+/* === WA SUPPORT LINK === */
+.wa-support-link {
+    color: #16a34a;
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    transition: all 0.2s;
+    background: rgba(22, 163, 74, 0.05);
+}
+.wa-support-link:hover {
+    color: #15803d;
+    background: rgba(22, 163, 74, 0.1);
+    text-decoration: none;
+    transform: translateY(-1px);
+}
 
 /* === PANEL TRANSITIONS === */
 .auth-panel {
@@ -63,16 +79,189 @@
 }
 .auth-panel.on {
     display: block;
-    animation: fadeInUp 0.3s forwards;
+    animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 @keyframes fadeInUp {
     to { opacity: 1; transform: translateY(0); }
+}
+
+/* === PRO INTERACTIVE CONNECTING OVERLAY === */
+.login-form-area { position: relative; }
+
+.connecting-overlay {
+    position: absolute;
+    inset: 0;
+    /* Premium Glassmorphism */
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 50;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+}
+.connecting-overlay.active {
+    opacity: 1;
+    pointer-events: all;
+}
+.connecting-content {
+    text-align: center;
+    color: #0f172a;
+    padding: 32px 24px;
+    width: 100%;
+    max-width: 300px;
+}
+
+/* Pro Spinner: Glowing Dual Ring */
+.spinner-container {
+    position: relative;
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 20px;
+}
+.spinner-ring-pro {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    border-top-color: #16a34a;
+    border-right-color: #22c55e;
+    animation: spin-pro 1s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+    filter: drop-shadow(0 0 8px rgba(22, 163, 74, 0.4));
+}
+.spinner-ring-pro::before {
+    content: '';
+    position: absolute;
+    top: 6px; left: 6px; right: 6px; bottom: 6px;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    border-top-color: #86efac;
+    animation: spin-pro 1.5s cubic-bezier(0.5, 0, 0.5, 1) infinite reverse;
+}
+@keyframes spin-pro { to { transform: rotate(360deg); } }
+
+.spinner-container.hide {
+    animation: fadeOutScale 0.3s ease forwards;
+}
+@keyframes fadeOutScale {
+    to { opacity: 0; transform: scale(0.8); pointer-events: none; }
+}
+
+/* Dynamic Text */
+.connecting-text {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #1e293b;
+    min-height: 1.5rem;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.connecting-text.fade {
+    opacity: 0;
+    transform: translateY(6px);
+}
+
+.connecting-percent {
+    font-size: 2.25rem;
+    font-weight: 800;
+    color: #16a34a;
+    margin-bottom: 16px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.03em;
+    text-shadow: 0 2px 10px rgba(22, 163, 74, 0.15);
+}
+
+/* Pro Progress Bar with Glowing Tip */
+.progress-bar-bg {
+    width: 100%;
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 99px;
+    overflow: visible;
+    margin: 0 auto;
+    position: relative;
+}
+.progress-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #16a34a, #4ade80);
+    border-radius: 99px;
+    transition: width 0.1s linear;
+    position: relative;
+    box-shadow: 0 0 12px rgba(22, 163, 74, 0.5);
+}
+.progress-bar-fill::after {
+    content: '';
+    position: absolute;
+    right: -4px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 14px;
+    height: 14px;
+    background: #fff;
+    border: 3px solid #16a34a;
+    border-radius: 50%;
+    box-shadow: 0 0 8px rgba(22, 163, 74, 0.6);
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+.progress-bar-fill[style*="width: 0"]::after { opacity: 0; }
+.progress-bar-fill:not([style*="width: 0"])::after { opacity: 1; }
+
+/* Pro Success Checkmark Animation */
+.success-checkmark {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 20px;
+    opacity: 0;
+    transform: scale(0.5);
+    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    filter: drop-shadow(0 4px 12px rgba(22, 163, 74, 0.3));
+}
+.success-checkmark.show {
+    opacity: 1;
+    transform: scale(1);
+}
+.checkmark-circle {
+    stroke-dasharray: 166;
+    stroke-dashoffset: 166;
+    stroke-width: 3;
+    stroke-miterlimit: 10;
+    stroke: #16a34a;
+    fill: none;
+    animation: stroke-circle 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+}
+.checkmark-check {
+    transform-origin: 50% 50%;
+    stroke-dasharray: 48;
+    stroke-dashoffset: 48;
+    stroke-width: 3;
+    stroke: #16a34a;
+    fill: none;
+    animation: stroke-check 0.4s cubic-bezier(0.65, 0, 0.45, 1) 0.4s forwards;
+}
+@keyframes stroke-circle { 100% { stroke-dashoffset: 0; } }
+@keyframes stroke-check { 100% { stroke-dashoffset: 0; } }
+
+/* Button Click Micro-interaction */
+.btn-press {
+    transform: scale(0.96) !important;
+    transition: transform 0.1s ease !important;
+    filter: brightness(0.95);
 }
 </style>
 
 <!-- SOUND EFFECT -->
 <audio id="loginSound" preload="auto">
     <source src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3" type="audio/mpeg">
+</audio>
+<audio id="successSound" preload="auto">
+    <source src="https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3" type="audio/mpeg">
 </audio>
 
 <!-- BRAND LEFT -->
@@ -84,6 +273,28 @@
 
 <!-- FORM RIGHT -->
 <div class="login-form-area">
+
+    <!-- PRO INTERACTIVE CONNECTING OVERLAY -->
+    <div id="connectingOverlay" class="connecting-overlay">
+        <div class="connecting-content">
+            <!-- Spinner State -->
+            <div class="spinner-container" id="spinnerContainer">
+                <div class="spinner-ring-pro"></div>
+            </div>
+            
+            <!-- Success State (Hidden by default) -->
+            <svg class="success-checkmark" id="successCheckmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                <circle class="checkmark-circle" cx="26" cy="26" r="25"/>
+                <path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+            </svg>
+
+            <div class="connecting-text" id="connectingText">Memverifikasi data...</div>
+            <div class="connecting-percent" id="connectingPercent">0%</div>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="progressBarFill"></div>
+            </div>
+        </div>
+    </div>
 
     <div class="welcome-text" style="text-align: center; margin-bottom: 24px;">
         <h2 style="font-size: 1.5rem; font-weight: 700; color: #0f172a; margin-bottom: 8px;">Selamat Datang di FixPro</h2>
@@ -100,7 +311,7 @@
     <div class="alert-box alert-ok show"><i class="fas fa-check-circle" style="margin-top:2px"></i><span>{{ session('status') }}</span></div>
     @endif
 
-    <!-- TABS (Hanya tampil jika bukan di panel forgot password) -->
+    <!-- TABS -->
     @if(!$showForgot)
     <div class="auth-tabs">
         <div class="auth-tab {{ $showLogin ? 'on' : '' }}" onclick="switchTab('login')"><i class="fas fa-sign-in-alt"></i> Login</div>
@@ -126,7 +337,6 @@
                 @error('password')<div class="field-err">{{ $message }}</div>@enderror
             </div>
 
-            <!-- Remember Me & Forgot Password -->
             <div class="form-options">
                 <label>
                     <input type="checkbox" name="remember" id="remember">
@@ -135,7 +345,13 @@
                 <button type="button" class="forgot-link" onclick="showForgotPanel()">Lupa Password?</button>
             </div>
 
-            {{-- ===== KODE AKTIVASI ===== --}}
+            <!-- Link WhatsApp Group FixPro Official Support (Diekstrak dari Landing Page) -->
+            <div style="text-align: center; margin-top: -8px; margin-bottom: 20px;">
+                <a href="https://chat.whatsapp.com/G41Mmc3CzWD2CsQGSlEljj" target="_blank" rel="noopener" class="wa-support-link">
+                    <i class="fab fa-whatsapp" style="font-size: 1.1rem;"></i> Gabung Grup WhatsApp FixPro Official Support
+                </a>
+            </div>
+
             @php
                 $showCodeField = $errors->has('activation_code') || old('activation_code') !== null || request()->query('expired') === '1';
                 $adminWaClean = isset($adminWa) ? preg_replace('/[^0-9]/', '', (string) $adminWa) : '';
@@ -151,31 +367,21 @@
                 <div class="act-code-body">
                     <label style="display:block;font-size:.78rem;font-weight:600;color:#475569;margin-bottom:6px">Kode Aktivasi</label>
                     <input type="text" class="fci" name="activation_code" value="{{ old('activation_code') }}" placeholder="Masukkan kode dari Admin" autocomplete="off">
-                    @error('activation_code')
-                        <div class="field-err">{{ $message }}</div>
-                    @enderror
+                    @error('activation_code')<div class="field-err">{{ $message }}</div>@enderror
                     @if(!empty($waUrl))
                     <a href="{{ $waUrl }}" target="_blank" rel="noopener" class="b b-wa" style="margin-top:8px">
                         <i class="fab fa-whatsapp"></i> Minta Kode Aktivasi via WhatsApp
                     </a>
                     @else
-                    <button type="button" class="b b-wa" style="margin-top:8px;opacity:.6;cursor:not-allowed" disabled title="Nomor WhatsApp admin belum diatur">
+                    <button type="button" class="b b-wa" style="margin-top:8px;opacity:.6;cursor:not-allowed" disabled>
                         <i class="fab fa-whatsapp"></i> Minta Kode Aktivasi via WhatsApp
                     </button>
                     @endif
                 </div>
             </div>
 
-            <!-- TOMBOL LOGIN DENGAN SPINNER -->
             <button type="submit" class="b bp b-full" id="loginSubmitBtn">
                 <span class="btn-text"><i class="fas fa-sign-in-alt"></i> Masuk</span>
-                <span class="btn-spinner">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" style="stroke: rgba(255,255,255,0.4);"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" style="fill: #ffffff;"></path>
-                    </svg>
-                    Memproses...
-                </span>
             </button>
         </form>
 
@@ -195,7 +401,7 @@
         @endif
     </div>
 
-    <!-- FORGOT PASSWORD PANEL (DIPERBAIKI AGAR BERFUNGSI SAAT ERROR) -->
+    <!-- FORGOT PASSWORD PANEL -->
     <div class="auth-panel {{ $showForgot ? 'on' : '' }}" id="panel-forgot">
         <div class="welcome-text" style="text-align: center; margin-bottom: 20px;">
             <h2 style="font-size: 1.25rem; font-weight: 700; color: #0f172a; margin-bottom: 8px;">Lupa Password?</h2>
@@ -213,7 +419,6 @@
 
         <form method="POST" action="{{ route('password.email') }}" id="forgotForm">
             @csrf
-            <!-- INI KUNCINYA: Agar saat error validasi, panel ini tetap terbuka -->
             <input type="hidden" name="form_type" value="forgot">
             
             <div class="fg">
@@ -224,13 +429,6 @@
 
             <button type="submit" class="b bp b-full" id="forgotSubmitBtn">
                 <span class="btn-text"><i class="fas fa-paper-plane"></i> Kirim Tautan Reset</span>
-                <span class="btn-spinner">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" style="stroke: rgba(255,255,255,0.4);"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" style="fill: #ffffff;"></path>
-                    </svg>
-                    Mengirim...
-                </span>
             </button>
         </form>
 
@@ -290,50 +488,126 @@
             
             <button type="submit" class="b bp b-full" id="registerSubmitBtn">
                 <span class="btn-text"><i class="fas fa-user-plus"></i> Daftar & Langsung Masuk</span>
-                <span class="btn-spinner">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" style="stroke: rgba(255,255,255,0.4);"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" style="fill: #ffffff;"></path>
-                    </svg>
-                    Mendaftar...
-                </span>
             </button>
         </form>
     </div>
 </div>
 
 <script>
-// === 1. SPINNER & SOUND LOGIN ===
+// === FUNGSI SIMULASI KONEKSI INTERAKTIF (PRO VERSION) ===
+function simulateServerConnection(form, playSound = false) {
+    const overlay = document.getElementById('connectingOverlay');
+    const percentEl = document.getElementById('connectingPercent');
+    const fillEl = document.getElementById('progressBarFill');
+    const textEl = document.getElementById('connectingText');
+    const spinnerContainer = document.getElementById('spinnerContainer');
+    const checkmarkEl = document.getElementById('successCheckmark');
+    
+    if (playSound) {
+        const audio = document.getElementById('loginSound');
+        audio.volume = 0.2;
+        audio.currentTime = 0;
+        audio.play().catch(() => {}); 
+    }
+
+    overlay.classList.add('active');
+    
+    let progress = 0;
+    const targetProgress = 92; // Stop before 100% to simulate "waiting for server"
+    
+    const messages = [
+        { threshold: 0, text: "Memverifikasi kredensial..." },
+        { threshold: 25, text: "Menghubungkan ke server aman..." },
+        { threshold: 55, text: "Mengenkripsi sesi..." },
+        { threshold: 80, text: "Menyiapkan dashboard..." }
+    ];
+
+    // Recursive setTimeout for organic, non-linear progress (feels more real)
+    function advanceProgress() {
+        if (progress < targetProgress) {
+            // Slower as it gets closer to target (exponential decay feel)
+            const remaining = targetProgress - progress;
+            const step = Math.max(0.3, (remaining * 0.08) + (Math.random() * 1.5));
+            progress = Math.min(targetProgress, progress + step);
+            
+            const displayProgress = Math.floor(progress);
+            percentEl.textContent = displayProgress + '%';
+            fillEl.style.width = displayProgress + '%';
+            
+            // Smooth text transition
+            const currentMsg = messages.slice().reverse().find(m => progress >= m.threshold);
+            if (currentMsg && textEl.dataset.currentMsg !== currentMsg.text) {
+                textEl.classList.add('fade');
+                setTimeout(() => {
+                    textEl.textContent = currentMsg.text;
+                    textEl.dataset.currentMsg = currentMsg.text;
+                    textEl.classList.remove('fade');
+                }, 150);
+            }
+            
+            // Variable delay for realism
+            const delay = Math.random() * 80 + 40;
+            setTimeout(advanceProgress, delay);
+        }
+    }
+    
+    advanceProgress();
+
+    // Selesaikan proses
+    setTimeout(() => {
+        progress = 100;
+        percentEl.textContent = '100%';
+        fillEl.style.width = '100%';
+        textEl.textContent = "Berhasil! Mengalihkan...";
+        
+        // Efek transisi ke success state
+        spinnerContainer.classList.add('hide');
+        
+        setTimeout(() => {
+            checkmarkEl.classList.add('show');
+            
+            if (playSound) {
+                const successAudio = document.getElementById('successSound');
+                successAudio.volume = 0.3;
+                successAudio.currentTime = 0;
+                successAudio.play().catch(() => {});
+            }
+            
+            // Submit form asli setelah animasi sukses selesai
+            setTimeout(() => {
+                HTMLFormElement.prototype.submit.call(form);
+            }, 500);
+        }, 200);
+    }, 1800); // Total waktu simulasi ~1.8 - 2.2 detik
+}
+
+// === 1. HANDLE LOGIN SUBMIT ===
 document.getElementById('loginForm').addEventListener('submit', function(e) {
     if (this.checkValidity()) {
-        const audio = document.getElementById('loginSound');
-        audio.volume = 0.4;
-        audio.play().catch(() => {}); // Ignore error jika browser blokir autoplay
-
+        e.preventDefault();
         const btn = document.getElementById('loginSubmitBtn');
-        btn.querySelector('.btn-text').style.display = 'none';
-        btn.querySelector('.btn-spinner').style.display = 'inline-flex';
-        btn.disabled = true;
+        btn.classList.add('btn-press');
+        setTimeout(() => simulateServerConnection(this, true), 100);
     }
 });
 
-// === 2. SPINNER REGISTER ===
+// === 2. HANDLE REGISTER SUBMIT ===
 document.getElementById('registerForm').addEventListener('submit', function(e) {
     if (this.checkValidity()) {
+        e.preventDefault();
         const btn = document.getElementById('registerSubmitBtn');
-        btn.querySelector('.btn-text').style.display = 'none';
-        btn.querySelector('.btn-spinner').style.display = 'inline-flex';
-        btn.disabled = true;
+        btn.classList.add('btn-press');
+        setTimeout(() => simulateServerConnection(this, false), 100);
     }
 });
 
-// === 3. SPINNER FORGOT PASSWORD ===
+// === 3. HANDLE FORGOT PASSWORD SUBMIT ===
 document.getElementById('forgotForm').addEventListener('submit', function(e) {
     if (this.checkValidity()) {
+        e.preventDefault();
         const btn = document.getElementById('forgotSubmitBtn');
-        btn.querySelector('.btn-text').style.display = 'none';
-        btn.querySelector('.btn-spinner').style.display = 'inline-flex';
-        btn.disabled = true;
+        btn.classList.add('btn-press');
+        setTimeout(() => simulateServerConnection(this, false), 100);
     }
 });
 
@@ -348,20 +622,18 @@ function switchTab(tab) {
 
 function showForgotPanel() {
     document.getElementById('panel-login').classList.remove('on');
-    // Hapus class 'on' dari tabs agar tidak membingungkan
     document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('on'));
     setTimeout(() => {
         document.getElementById('panel-forgot').classList.add('on');
-    }, 200);
+    }, 150);
 }
 
 function showLoginPanel() {
     document.getElementById('panel-forgot').classList.remove('on');
     setTimeout(() => {
         document.getElementById('panel-login').classList.add('on');
-        // Kembalikan state tab login
         document.querySelectorAll('.auth-tab')[0].classList.add('on');
-    }, 200);
+    }, 150);
 }
 
 function toggleActCode() {

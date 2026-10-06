@@ -613,8 +613,11 @@ class PembelianController extends Controller
     {
         $this->checkCabangAccess($pembelian);
 
+        // PERBAIKAN: Bulatkan nilai sisa hutang untuk mencegah error floating point pada validasi max
+        $maxHutang = round($pembelian->sisaHutang());
+
         $request->validate([
-            'jumlah' => 'required|numeric|min:1|max:' . $pembelian->sisaHutang(),
+            'jumlah' => 'required|numeric|min:1|max:' . $maxHutang,
             'metode' => 'required|in:Cash,Transfer,QRIS',
             'tanggal_bayar' => 'nullable|date',
         ]);
@@ -622,7 +625,7 @@ class PembelianController extends Controller
         if ($pembelian->isDibatalkan() || $pembelian->isDraft()) {
             return back()->with('error', 'Transaksi ini tidak bisa dibayar.');
         }
-        if ($pembelian->sisaHutang() <= 0) {
+        if ($maxHutang <= 0) {
             return back()->with('error', 'Tidak ada sisa hutang.');
         }
 

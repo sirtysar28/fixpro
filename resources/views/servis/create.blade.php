@@ -55,7 +55,7 @@
                     <select id="tipeHpSelect" class="form-input" onchange="autoFillPerangkat()">
                         <option value="">-- Pilih Merk dulu --</option>
                     </select>
-                    <input type="text" id="perangkatInput" name="perangkat" class="form-input" placeholder="Atau ketik manual (contoh: iPhone 11)" required style="margin-top:6px">
+                    <input type="text" id="perangkatInput" name="perangkat" class="form-input" placeholder="Atau ketik manual (contoh: Redmi Note 13)" required style="margin-top:6px">
                 </div>
             </div>
             <div class="form-group">
@@ -314,24 +314,14 @@
 
         {{-- ✨ CARD BARU: Recent Servis Terbaru (DIFILTER PER CABANG) ✨ --}}
         @php
-            // 1. Ambil ID cabang dari user yang sedang login
             $user = auth()->user();
             $cabangId = $user ? ($user->cabang_id ?? null) : null;
-
-            // 2. Buat query dasar
             $query = \App\Models\Servis::with('pelanggan');
-
-            // 3. Filter berdasarkan cabang jika user memiliki cabang_id
-            // (Jika user adalah Super Admin dan cabang_id-nya null, ini akan menampilkan semua. 
-            //  Jika Super Admin juga punya aturan khusus, sesuaikan logika di sini).
             if ($cabangId) {
                 $query->where('cabang_id', $cabangId);
             }
-
-            // 4. Eksekusi query
             $recentServis = $query->latest()->limit(5)->get();
 
-            // Mapping warna status (tetap sama, lebih rapi tanpa percabangan bertumpuk)
             $statusColors = [
                 'Selesai' => ['bg' => '#dcfce7', 'text' => '#166534'],
                 'Proses'  => ['bg' => '#dbeafe', 'text' => '#1e40af'],
@@ -356,7 +346,6 @@
                         @forelse($recentServis as $s)
                         @php
                             $status = $s->status ?? 'Masuk';
-                            // Ambil warna dari mapping, jika tidak ada gunakan default (Masuk)
                             $style = $statusColors[$status] ?? ['bg' => '#f1f5f9', 'text' => '#475569'];
                         @endphp
                         <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.15s;" onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background='transparent'">
@@ -395,6 +384,83 @@
 </div>
 
 <script>
+// ===== DATA MERK & TIPE HP (LENGKAP & TERUPDATE SAMPAI 2026) =====
+const dataMerekHp = {
+    "Apple": ["iPhone 16 Pro Max", "iPhone 16 Pro", "iPhone 16 Plus", "iPhone 16", "iPhone 15 Pro Max", "iPhone 15 Pro", "iPhone 15 Plus", "iPhone 15", "iPhone 14 Pro Max", "iPhone 14 Pro", "iPhone 14 Plus", "iPhone 14", "iPhone 13 Pro Max", "iPhone 13 Pro", "iPhone 13", "iPhone 13 Mini", "iPhone 12 Pro Max", "iPhone 12 Pro", "iPhone 12", "iPhone 12 Mini", "iPhone 11 Pro Max", "iPhone 11 Pro", "iPhone 11", "iPhone XS Max", "iPhone XS", "iPhone XR", "iPhone X", "iPhone 8 Plus", "iPhone 8", "iPhone 7 Plus", "iPhone 7", "iPhone SE (2022)", "iPhone SE (2020)", "iPhone SE (2016)"],
+    "Asus": ["ROG Phone 8 Pro", "ROG Phone 8", "ROG Phone 7 Ultimate", "ROG Phone 7", "ROG Phone 6 Pro", "ROG Phone 6", "Zenfone 11 Ultra", "Zenfone 10", "Zenfone 9", "Zenfone 8 Flip", "Zenfone 8"],
+    "Google": ["Pixel 8 Pro", "Pixel 8", "Pixel 8a", "Pixel 7 Pro", "Pixel 7", "Pixel 7a", "Pixel 6 Pro", "Pixel 6", "Pixel 6a", "Pixel 5", "Pixel 5a", "Pixel Fold"],
+    "Honor": ["Magic 6 Pro", "Magic 6", "Magic 5 Pro", "Magic 5", "Magic 5 Lite", "Magic 4 Pro", "Magic 4", "Magic 4 Lite", "90 Pro", "90", "90 Lite", "80 Pro", "80", "80 Lite", "X9b", "X9a", "X8b", "X8a", "X7b", "X7a", "X6a"],
+    "Huawei": ["P60 Pro", "P60", "P60 Art", "P50 Pro", "P50", "P50 Pocket", "P40 Pro+", "P40 Pro", "P40", "P30 Pro", "P30", "P30 Lite", "Mate 60 Pro", "Mate 60", "Mate 50 Pro", "Mate 50", "Mate 40 Pro", "Mate 40", "Nova 11 Pro", "Nova 11", "Nova 11i", "Nova 10 Pro", "Nova 10", "Nova 9 Pro", "Nova 9", "Nova 9 SE"],
+    "Infinix": ["Zero 30", "Zero Ultra", "Zero 5G", "Note 40 Pro", "Note 40", "Note 30 Pro", "Note 30", "Note 12 Pro", "Note 12", "Hot 40 Pro", "Hot 40", "Hot 30i", "Hot 30", "Hot 20i", "Hot 20", "Hot 12", "Smart 3", "Smart 3 Plus", "Smart 4", "Smart 4c", "Smart 5", "Smart 5 Pro", "Smart 6", "Smart 6 Plus", "Smart 6 HD", "Smart 7", "Smart 7 HD", "Smart 7 Plus", "Smart 8", "Smart 8 HD", "Smart 8 Pro", "Smart 9", "Smart 9 HD", "Smart 10", "Smart 10 Plus", "Smart 10 HD", "Smart 20", "Smart 20 HD", "Smart 20 Pro"],
+    "Itel": ["P55+", "P55", "P55 5G", "P40+", "P40", "P38", "A70", "A70 5G", "A60s", "A60", "A58", "S23", "S23+", "S18", "S17"],
+    "Motorola": ["Edge 50 Pro", "Edge 50", "Edge 40 Pro", "Edge 40", "Edge 30 Ultra", "Edge 30 Pro", "Edge 30", "Razr 50 Ultra", "Razr 50", "Razr 40 Ultra", "Razr 40", "Moto G84", "Moto G73", "Moto G54", "Moto G53", "Moto G24", "Moto G23", "Moto G14", "Moto G13"],
+    "Nothing": ["Phone (2a) Plus", "Phone (2a)", "Phone (2)", "Phone (1)"],
+    "Nokia": ["X30", "X20", "X10", "G60", "G50", "G42", "G22", "G21", "C32", "C22", "C12", "5.4", "5.3", "4.2", "3.4", "2.4", "1.4"],
+    "OnePlus": ["12", "12R", "11", "11R", "10 Pro", "10T", "10R", "9 Pro", "9", "9R", "8 Pro", "8T", "8", "Nord 3", "Nord CE 3", "Nord CE 3 Lite", "Nord 2T", "Nord CE 2", "Nord CE 2 Lite", "Nord N30", "Nord N20", "Nord N10"],
+    "OPPO": ["Find X7 Ultra", "Find X7", "Find X6 Pro", "Find X6", "Find X5 Pro", "Find X5", "Find N3 Flip", "Find N3", "Find N2 Flip", "Find N2", "Reno 12 Pro", "Reno 12", "Reno 12 F", "Reno 11 Pro", "Reno 11", "Reno 11 F", "Reno 10 Pro+", "Reno 10 Pro", "Reno 10", "Reno 9 Pro", "Reno 9", "Reno 8 Pro", "Reno 8", "A3s", "A5", "A7", "A9", "A1k", "A5s", "A7n", "A91", "A12", "A31", "A52", "A53", "A72", "A92", "A15", "A15s", "A16", "A16e", "A16k", "A33", "A53s", "A54", "A74", "A74 5G", "A94", "A95", "A17", "A17k", "A55", "A57", "A57 5G", "A76", "A77", "A77 5G", "A78", "A96", "A98", "A18", "A38", "A58", "A58x", "A58 5G", "A78 5G", "A79 5G", "A98 5G", "A3", "A3x", "A3 Pro", "A5 Pro", "A60", "A79", "A80", "A59 5G", "A6 Pro 5G", "A6x 5G", "A7 Pro Max 5G", "A80 5G"],
+    "Realme": ["GT 5 Pro", "GT 5", "GT Neo 5", "GT Neo 3", "GT 3", "GT 2 Pro", "GT 2", "12 Pro+", "12 Pro", "12", "12x", "11 Pro+", "11 Pro", "11", "11x", "10 Pro+", "10 Pro", "10", "9 Pro+", "9 Pro", "9", "C67", "C55", "C53", "C51", "C35", "C33", "Narzo 60 Pro", "Narzo 60", "Narzo 50 Pro", "Narzo 50"],
+    "Redmi": ["Redmi Note 17 Pro Max", "Redmi Note 17 Pro", "Redmi Note 17", "Redmi Note 15R Pro", "Redmi Note 15 SE 5G", "Redmi Note 15 Pro+", "Redmi Note 15 Pro", "Redmi Note 15", "Redmi Note 14 SE 5G", "Redmi Note 14 Pro+", "Redmi Note 14 Pro", "Redmi Note 14", "Redmi Note 13R", "Redmi Note 13 5G", "Redmi Note 13 Pro+", "Redmi Note 13 Pro", "Redmi Note 13", "Redmi Note 12R", "Redmi Note 12 5G", "Redmi Note 12S", "Redmi Note 12 Pro 5G", "Redmi Note 12 Pro+", "Redmi Note 12 Pro", "Redmi Note 12", "Redmi Note 11E Pro", "Redmi Note 11E", "Redmi Note 11T 5G", "Redmi Note 11 5G", "Redmi Note 11S", "Redmi Note 11 Pro+", "Redmi Note 11 Pro", "Redmi Note 11", "Redmi Note 10T", "Redmi Note 10 5G", "Redmi Note 10S", "Redmi Note 10 Pro Max", "Redmi Note 10 Pro", "Redmi Note 10", "Redmi Note 9T", "Redmi Note 9 5G", "Redmi Note 9 4G", "Redmi Note 9S", "Redmi Note 9 Pro Max", "Redmi Note 9 Pro", "Redmi Note 9", "Redmi Note 8T", "Redmi Note 8 Pro", "Redmi Note 8", "Redmi Note 7S", "Redmi Note 7 Pro", "Redmi Note 7", "Redmi 15R 5G", "Redmi 15R", "Redmi 15C 5G", "Redmi 15C", "Redmi 15", "Redmi 14C 5G", "Redmi 14C", "Redmi 13R", "Redmi 13C 5G", "Redmi 13C", "Redmi 13", "Redmi 12R", "Redmi 12 5G", "Redmi 12C", "Redmi 12", "Redmi 11 Prime 5G", "Redmi 11 Prime", "Redmi 10 Power", "Redmi 10 2022", "Redmi 10 Prime", "Redmi 10C", "Redmi 10A", "Redmi 10", "Redmi 9i Sport", "Redmi 9i", "Redmi 9T", "Redmi 9 Power", "Redmi 9C NFC", "Redmi 9C", "Redmi 9A", "Redmi 9", "Redmi 8A Pro", "Redmi 8A Dual", "Redmi 8A", "Redmi 8", "Redmi 7A", "Redmi 7", "Redmi A3x", "Redmi A3", "Redmi A2+", "Redmi A2", "Redmi Pad", "Redmi Pad SE"],
+    "Samsung": ["Galaxy S24 Ultra", "Galaxy S24+", "Galaxy S24", "Galaxy S23 Ultra", "Galaxy S23+", "Galaxy S23", "Galaxy S23 FE", "Galaxy S22 Ultra", "Galaxy S22+", "Galaxy S22", "Galaxy S21 Ultra", "Galaxy S21+", "Galaxy S21", "Galaxy S21 FE", "Galaxy Note 20 Ultra", "Galaxy Note 20", "Galaxy Note 10+", "Galaxy Note 10", "Galaxy Z Fold 6", "Galaxy Z Fold 5", "Galaxy Z Fold 4", "Galaxy Z Flip 6", "Galaxy Z Flip 5", "Galaxy Z Flip 4", "Galaxy M55", "Galaxy M54", "Galaxy M34", "Galaxy M14", "Galaxy A10", "Galaxy A10e", "Galaxy A10s", "Galaxy A20", "Galaxy A20e", "Galaxy A20s", "Galaxy A30", "Galaxy A30s", "Galaxy A40", "Galaxy A50", "Galaxy A50s", "Galaxy A60", "Galaxy A70", "Galaxy A70s", "Galaxy A80", "Galaxy A90 5G", "Galaxy A01", "Galaxy A01 Core", "Galaxy A11", "Galaxy A21", "Galaxy A21s", "Galaxy A31", "Galaxy A41", "Galaxy A51", "Galaxy A51 5G", "Galaxy A71", "Galaxy A71 5G", "Galaxy A02", "Galaxy A02s", "Galaxy A03", "Galaxy A03s", "Galaxy A03 Core", "Galaxy A12", "Galaxy A12 Nacho", "Galaxy A22", "Galaxy A22 5G", "Galaxy A32", "Galaxy A32 5G", "Galaxy A52", "Galaxy A52 5G", "Galaxy A52s 5G", "Galaxy A72", "Galaxy A82 5G", "Galaxy A04", "Galaxy A04e", "Galaxy A04s", "Galaxy A13", "Galaxy A13 5G", "Galaxy A23", "Galaxy A23 5G", "Galaxy A33 5G", "Galaxy A53 5G", "Galaxy A73 5G", "Galaxy A05", "Galaxy A05s", "Galaxy A14", "Galaxy A14 5G", "Galaxy A24", "Galaxy A34 5G", "Galaxy A54 5G", "Galaxy A06", "Galaxy A15", "Galaxy A15 5G", "Galaxy A25 5G", "Galaxy A35 5G", "Galaxy A55 5G", "Galaxy A07", "Galaxy A07 5G", "Galaxy A07s", "Galaxy A08", "Galaxy A16", "Galaxy A16 5G", "Galaxy A17", "Galaxy A17 5G", "Galaxy A26 5G", "Galaxy A27 5G", "Galaxy A36 5G", "Galaxy A37 5G", "Galaxy A56 5G", "Galaxy A57 5G"],
+    "Sony": ["Xperia 1 VI", "Xperia 1 V", "Xperia 1 IV", "Xperia 5 V", "Xperia 5 IV", "Xperia 5 III", "Xperia 10 VI", "Xperia 10 V", "Xperia 10 IV", "Xperia Pro-I"],
+    "Tecno": ["Phantom X2 Pro", "Phantom X2", "Phantom X", "Camon 20 Pro", "Camon 20", "Camon 19 Pro", "Camon 19", "Spark 20 Pro", "Spark 20", "Spark 10 Pro", "Spark 10", "Spark 9 Pro", "Spark 9", "Pova 5 Pro", "Pova 5", "Pova 4", "Pop 8", "Pop 7", "Pop 6"],
+    "Vivo": ["X100 Pro", "X100", "X90 Pro", "X90", "X80 Pro", "X80", "X70 Pro", "X70", "V40 Pro", "V40", "V40e", "V30 Pro", "V30", "V30e", "V29 Pro", "V29", "V29e", "V27 Pro", "V27", "V27e", "Y81", "Y81s", "Y83", "Y83 Pro", "Y85", "Y89", "Y91", "Y91i", "Y91C", "Y93", "Y95", "Y97", "Y11", "Y12", "Y15", "Y17", "Y19", "Y30", "Y50", "Y70", "Y11s", "Y12s", "Y15s", "Y20", "Y20i", "Y20s", "Y30i", "Y51", "Y70s", "Y21", "Y21A", "Y21s", "Y21T", "Y21e", "Y22", "Y22s", "Y31", "Y33s", "Y53s", "Y72", "Y73", "Y75", "Y75 5G", "Y76 5G", "Y02", "Y02A", "Y02s", "Y16", "Y35", "Y35m", "Y55", "Y55s", "Y77", "Y77e", "Y100", "Y100A", "Y03", "Y17s", "Y27", "Y27 5G", "Y28", "Y36", "Y36 5G", "Y56 5G", "Y78", "Y78 5G", "Y05", "Y05e", "Y11d", "Y15s", "Y19s", "Y21d", "Y29", "Y31d", "Y31d Pro", "Y38", "Y18", "Y21 5G", "Y31 5G", "Y31t", "Y200", "Y200e", "Y200 Pro", "Y400 5G", "Y400 Pro", "Y500 4G", "Y51 Pro", "Y300", "Y300 Pro", "Y300 Pro+"],
+    "Xiaomi": ["Xiaomi 14 Ultra", "Xiaomi 14 Pro", "Xiaomi 14", "Xiaomi 13 Ultra", "Xiaomi 13 Pro", "Xiaomi 13", "Xiaomi 13 Lite", "Xiaomi 12 Pro", "Xiaomi 12", "Xiaomi 12 Lite", "Xiaomi 11 Ultra", "Xiaomi 11 Pro", "Xiaomi 11", "Xiaomi 11 Lite", "POCO X6 Pro", "POCO X6", "POCO X5 Pro", "POCO X5", "POCO F6 Pro", "POCO F6", "POCO F5 Pro", "POCO F5", "POCO M6 Pro", "POCO M5", "POCO C65"]
+};
+
+// Fungsi untuk mengisi dropdown merek HP saat halaman dimuat
+function populateMerkHp() {
+    const merkSelect = document.getElementById('merkHpSelect');
+    merkSelect.innerHTML = '<option value="">-- Pilih Merk / Ketik Manual --</option>';
+    
+    Object.keys(dataMerekHp).sort().forEach(merk => {
+        const option = document.createElement('option');
+        option.value = merk;
+        option.textContent = merk;
+        merkSelect.appendChild(option);
+    });
+}
+
+// Fungsi untuk mengisi dropdown tipe HP berdasarkan merek yang dipilih
+function loadTipeHp() {
+    const merkSelect = document.getElementById('merkHpSelect');
+    const tipeSelect = document.getElementById('tipeHpSelect');
+    const tipeOsSelect = document.querySelector('select[name="tipe"]');
+    const selectedMerk = merkSelect.value;
+    
+    tipeSelect.innerHTML = '<option value="">-- Pilih Tipe HP --</option>';
+    
+    if (selectedMerk && dataMerekHp[selectedMerk]) {
+        dataMerekHp[selectedMerk].forEach(tipe => {
+            const option = document.createElement('option');
+            option.value = tipe;
+            option.textContent = tipe;
+            tipeSelect.appendChild(option);
+        });
+        
+        // Auto-detect OS berdasarkan merek
+        if (tipeOsSelect) {
+            const appleMerks = ['Apple', 'iPhone'];
+            tipeOsSelect.value = appleMerks.includes(selectedMerk) ? 'Apple' : 'Android';
+        }
+    } else {
+        tipeSelect.innerHTML = '<option value="">-- Pilih Merk dulu --</option>';
+    }
+}
+
+// Fungsi untuk auto-fill perangkat saat tipe dipilih
+function autoFillPerangkat() {
+    const merk = document.getElementById('merkHpSelect').value;
+    const tipe = document.getElementById('tipeHpSelect').value;
+    const input = document.getElementById('perangkatInput');
+    if (merk && tipe) {
+        input.value = merk + ' ' + tipe;
+    }
+}
+
+// Panggil fungsi saat halaman dimuat
+document.addEventListener('DOMContentLoaded', populateMerkHp);
+
+
 // ===== LOGIKA KIRIM KE TEKNISI (MANUAL) =====
 function kirimWaKeTeknisi() {
     const teknisiSelect = document.getElementById('teknisiSelect');
@@ -588,57 +654,6 @@ document.getElementById('noHp').addEventListener('blur', function() {
             });
     }
 });
-
-let merkLoaded = false;
-function loadMerks() {
-    if (merkLoaded) return;
-    fetch('/api/tipe-hp/search?q=')
-        .then(r => r.json())
-        .then(data => {
-            const select = document.getElementById('merkHpSelect');
-            const merks = [...new Set(data.map(d => d.merk))].sort();
-            merks.forEach(merk => {
-                const opt = document.createElement('option');
-                opt.value = merk;
-                opt.textContent = merk;
-                select.appendChild(opt);
-            });
-            window._tipeHpData = data;
-            merkLoaded = true;
-        })
-        .catch(() => {});
-}
-loadMerks();
-
-function loadTipeHp() {
-    const merk = document.getElementById('merkHpSelect').value;
-    const tipeSelect = document.getElementById('tipeHpSelect');
-    tipeSelect.innerHTML = '<option value="">-- Pilih Tipe --</option>';
-    if (!merk || !window._tipeHpData) {
-        tipeSelect.innerHTML = '<option value="">-- Pilih Merk dulu --</option>';
-        return;
-    }
-    const types = window._tipeHpData.filter(d => d.merk === merk).sort((a, b) => a.tipe.localeCompare(b.tipe));
-    types.forEach(t => {
-        const opt = document.createElement('option');
-        opt.value = t.tipe;
-        opt.textContent = t.tipe;
-        opt.dataset.merk = t.merk;
-        tipeSelect.appendChild(opt);
-    });
-    const tipeOs = document.querySelector('select[name="tipe"]');
-    const appleMerks = ['Apple', 'iPhone', 'iPad'];
-    tipeOs.value = appleMerks.includes(merk) ? 'Apple' : 'Android';
-}
-
-function autoFillPerangkat() {
-    const merk = document.getElementById('merkHpSelect').value;
-    const tipe = document.getElementById('tipeHpSelect').value;
-    const input = document.getElementById('perangkatInput');
-    if (merk && tipe) {
-        input.value = merk + ' ' + tipe;
-    }
-}
 
 function parseRupiah(val) {
     if (!val) return 0;

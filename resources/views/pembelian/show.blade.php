@@ -30,7 +30,7 @@
             @if($pembelian->isDraft())
             <form method="POST" action="{{ route('pembelian.proses', $pembelian) }}" style="display:flex;gap:6px;align-items:center" onsubmit="return confirm('Proses pembelian ini? Stok akan bertambah otomatis.')">
                 @csrf
-                <input type="number" name="dibayar" min="0" step="1000" value="0" placeholder="Dibayar" style="width:110px;padding:5px 8px;font-size:.78rem;border:1px solid #e2e8f0;border-radius:6px">
+                <input type="number" name="dibayar" min="0" step="1" value="0" placeholder="Dibayar" style="width:110px;padding:5px 8px;font-size:.78rem;border:1px solid #e2e8f0;border-radius:6px">
                 <button type="submit" class="btn btn-sm" style="background:#2563eb;color:#fff"><i class="fas fa-play"></i> Proses (Stok Masuk)</button>
             </form>
             <a href="{{ route('pembelian.edit', $pembelian) }}" class="btn btn-sm" style="background:#fef3c7;color:#b45309"><i class="fas fa-edit"></i> Edit Item</a>
@@ -126,9 +126,11 @@
                 @csrf
                 <div class="form-group">
                     <label>Jumlah Bayar (maks {{ formatRp($pembelian->sisaHutang()) }})</label>
-                    <input type="number" name="jumlah" class="form-input" min="1" max="{{ $pembelian->sisaHutang() }}" step="1000" value="{{ $pembelian->sisaHutang() }}" required>
+                    <!-- PERBAIKAN FINAL: round() memastikan HTML attribute max & value selalu bilangan bulat, mencegah konflik dengan step="1" -->
+                    <input type="number" name="jumlah" class="form-input" min="1" max="{{ round($pembelian->sisaHutang()) }}" step="1" value="{{ round($pembelian->sisaHutang()) }}" required>
                     <div style="display:flex;gap:6px;margin-top:6px">
-                        <button type="button" class="btn btn-xs" style="background:#dcfce7;color:#16a34a" onclick="this.form.jumlah.value={{ $pembelian->sisaHutang() }}">Lunas Semua</button>
+                        <!-- PERBAIKAN: round() di JS inline agar nilai yang diisi tombol juga bulat sempurna -->
+                        <button type="button" class="btn btn-xs" style="background:#dcfce7;color:#16a34a" onclick="this.form.jumlah.value={{ round($pembelian->sisaHutang()) }}">Lunas Semua</button>
                     </div>
                 </div>
                 <div class="form-group">
@@ -172,7 +174,7 @@
                 </div>
                 <div class="form-group">
                     <label>Harga Retur / pcs (default harga beli)</label>
-                    <input type="number" name="harga_retur" class="form-input" min="0" step="100" id="returHarga" placeholder="otomatis dari harga beli">
+                    <input type="number" name="harga_retur" class="form-input" min="0" step="1" id="returHarga" placeholder="otomatis dari harga beli">
                 </div>
                 <div class="form-group">
                     <label>Alasan Retur</label>

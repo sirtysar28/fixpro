@@ -91,15 +91,16 @@
                 </div>
                 <div class="form-group">
                     <label>Diskon Transaksi Nominal (Rp)</label>
-                    <input type="number" name="diskon_nominal" id="diskonNominal" class="form-input" min="0" step="1000" value="{{ old('diskon_nominal', 0) }}" oninput="recalc()">
+                    <!-- PERBAIKAN: step="1" memaksa angka bulat, mencegah error validasi browser -->
+                    <input type="number" name="diskon_nominal" id="diskonNominal" class="form-input" min="0" step="1" value="{{ old('diskon_nominal', 0) }}" oninput="recalc()">
                 </div>
                 <div class="form-group">
                     <label>Biaya Tambahan (Rp)</label>
-                    <input type="number" name="biaya_tambahan" id="biayaTambahan" class="form-input" min="0" step="1000" value="{{ old('biaya_tambahan', 0) }}" oninput="recalc()" placeholder="Biaya admin, kemasan, dll">
+                    <input type="number" name="biaya_tambahan" id="biayaTambahan" class="form-input" min="0" step="1" value="{{ old('biaya_tambahan', 0) }}" oninput="recalc()" placeholder="Biaya admin, kemasan, dll">
                 </div>
                 <div class="form-group">
                     <label>Ongkir (Rp)</label>
-                    <input type="number" name="ongkir" id="ongkir" class="form-input" min="0" step="1000" value="{{ old('ongkir', 0) }}" oninput="recalc()" placeholder="Ongkos kirim">
+                    <input type="number" name="ongkir" id="ongkir" class="form-input" min="0" step="1" value="{{ old('ongkir', 0) }}" oninput="recalc()" placeholder="Ongkos kirim">
                 </div>
                 <div class="form-group">
                     <label>Catatan Pembelian</label>
@@ -114,7 +115,8 @@
                 <div style="display:flex;justify-content:space-between;padding-top:10px;border-top:2px solid #e2e8f0;margin-bottom:14px;font-size:1.1rem"><strong>Total Pembelian</strong><strong id="sumTotal" style="color:var(--primary)">Rp 0</strong></div>
                 <div class="form-group">
                     <label>Dibayar (Rp)</label>
-                    <input type="number" name="dibayar" id="dibayar" class="form-input" min="0" step="1000" value="{{ old('dibayar', 0) }}" oninput="recalc()">
+                    <!-- PERBAIKAN: step="1" agar sinkron dengan total yang dibulatkan -->
+                    <input type="number" name="dibayar" id="dibayar" class="form-input" min="0" step="1" value="{{ old('dibayar', 0) }}" oninput="recalc()">
                     <div style="display:flex;gap:6px;margin-top:6px">
                         <button type="button" class="btn btn-xs" style="background:#dcfce7;color:#16a34a" onclick="setDibayar('lunas')">Bayar Lunas</button>
                         <button type="button" class="btn btn-xs" style="background:#fee2e2;color:#dc2626" onclick="setDibayar(0)">Hutang Semua</button>
@@ -187,11 +189,9 @@ function renderDropdown(q) {
     dropdown.style.display = 'block';
 }
 
-// Enter pada pencarian = tambah produk pertama hasil (berguna untuk scan barcode)
 searchInput.addEventListener('keydown', function (e) {
     if (e.key === 'Enter') {
         e.preventDefault();
-        // Barcode/SKU exact match → langsung tambah
         const q = this.value.trim().toLowerCase();
         const exact = stokList.find(s => s.kode.toLowerCase() === q || (s.barcode||'').toLowerCase() === q);
         if (exact) {
@@ -223,10 +223,10 @@ function addRow(data = {}) {
             '<input type="hidden" class="stok-id" name="items[' + idx + '][stok_id]" value="' + (data.stok ? data.stok.id : '') + '">' +
             '<input type="hidden" class="kode-input" name="items[' + idx + '][kode]" value="' + (data.stok ? data.stok.kode : '') + '">' +
         '</td>' +
-        '<td><input type="number" class="form-input qty-input" name="items[' + idx + '][qty]" min="1" value="' + (data.qty || 1) + '" required style="width:75px;font-size:.78rem;padding:5px 8px" oninput="recalc()"></td>' +
-        '<td><input type="number" class="form-input beli-input" name="items[' + idx + '][harga_beli]" min="0" step="100" required value="' + (data.stok ? data.stok.modal : 0) + '" style="width:115px;font-size:.78rem;padding:5px 8px" oninput="recalc()"></td>' +
-        '<td><input type="number" class="form-input diskon-item-input" name="items[' + idx + '][diskon_item]" min="0" step="100" value="0" style="width:105px;font-size:.78rem;padding:5px 8px" oninput="recalc()"></td>' +
-        '<td><input type="number" class="form-input jual-input" name="items[' + idx + '][harga_jual]" min="0" step="100" value="' + (data.stok ? data.stok.jual : 0) + '" style="width:115px;font-size:.78rem;padding:5px 8px"></td>' +
+        '<td><input type="number" class="form-input qty-input" name="items[' + idx + '][qty]" min="1" step="1" value="' + (data.qty || 1) + '" required style="width:75px;font-size:.78rem;padding:5px 8px" oninput="recalc()"></td>' +
+        '<td><input type="number" class="form-input beli-input" name="items[' + idx + '][harga_beli]" min="0" step="1" required value="' + (data.stok ? data.stok.modal : 0) + '" style="width:115px;font-size:.78rem;padding:5px 8px" oninput="recalc()"></td>' +
+        '<td><input type="number" class="form-input diskon-item-input" name="items[' + idx + '][diskon_item]" min="0" step="1" value="0" style="width:105px;font-size:.78rem;padding:5px 8px" oninput="recalc()"></td>' +
+        '<td><input type="number" class="form-input jual-input" name="items[' + idx + '][harga_jual]" min="0" step="1" value="' + (data.stok ? data.stok.jual : 0) + '" style="width:115px;font-size:.78rem;padding:5px 8px"></td>' +
         '<td style="font-weight:600" class="sub-cell">Rp 0</td>' +
         '<td><button type="button" onclick="removeRow(\'row_' + rowCount + '\')" style="background:#fee2e2;border:none;color:#dc2626;width:30px;height:30px;border-radius:6px;cursor:pointer"><i class="fas fa-times"></i></button></td>';
     body.appendChild(tr);
@@ -287,23 +287,34 @@ function recalc() {
 }
 
 function setDibayar(mode) {
+    const inputDibayar = document.getElementById('dibayar');
+    
     if (mode === 'lunas') {
         const dpersen = parseFloat(document.getElementById('diskonPersen')?.value || 0);
         const dnom = parseFloat(document.getElementById('diskonNominal')?.value || 0);
         const biaya = parseFloat(document.getElementById('biayaTambahan')?.value || 0);
         const ongkir = parseFloat(document.getElementById('ongkir')?.value || 0);
         let subtotal = 0;
+        
         document.querySelectorAll('#itemBody tr').forEach(tr => {
             const qty = parseFloat(tr.querySelector('.qty-input')?.value || 0);
             const beli = parseFloat(tr.querySelector('.beli-input')?.value || 0);
             const disk = parseFloat(tr.querySelector('.diskon-item-input')?.value || 0);
             subtotal += Math.max(0, qty * beli - disk);
         });
-        const total = Math.max(0, subtotal - (subtotal * dpersen / 100) - dnom) + biaya + ongkir;
-        document.getElementById('dibayar').value = Math.round(total);
+        
+        // Hitung total, lalu BULATKAN agar tidak ada desimal tersembunyi (floating point issue)
+        const totalRaw = (subtotal - (subtotal * dpersen / 100) - dnom) + biaya + ongkir;
+        const totalBersih = Math.max(0, Math.round(totalRaw)); 
+        
+        // Masukkan nilai bulat ke input
+        inputDibayar.value = totalBersih;
     } else {
-        document.getElementById('dibayar').value = mode;
+        inputDibayar.value = 0;
     }
+    
+    // PENTING: Hapus flag error validasi browser secara paksa agar form bisa disubmit
+    inputDibayar.setCustomValidity('');
     recalc();
 }
 

@@ -1,0 +1,36 @@
+{
+    "name": "FIXPRO — Aplikasi Service HP",
+    "short_name": "FIXPRO",
+    "description": "Aplikasi manajemen servis HP, stok sparepart, kas, dan jual beli untuk bisnis service Anda.",
+    "lang": "id",
+    "dir": "ltr",
+    "start_url": "/dashboard",
+    "scope": "/",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#f1f5f9",
+    "theme_color": "#0d9488",
+    "icons": [
+        { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+        { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+        { "src": "/icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+        { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    ],
+    "shortcuts": [
+        {
+            "name": "Input Servis Baru",
+            "short_name": "Servis Baru",
+            "url": "/servis/create"
+        },
+        {
+            "name": "Stok Sparepart",
+            "short_name": "Stok",
+            "url": "/stok"
+        },
+        {
+            "name": "Kas",
+            "short_name": "Kas",
+            "url": "/kas"
+        }
+    ]
+}

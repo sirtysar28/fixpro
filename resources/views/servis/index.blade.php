@@ -65,7 +65,7 @@
 
 <div class="card">
     <div class="table-wrap">
-        <table>
+        <table class="table-cards">
             <thead>
                 <tr>
                     @if(auth()->user()->isSuperAdmin())<th style="width:36px"><input type="checkbox" id="selectAllServis" onclick="toggleSelectAll(this)" title="Pilih semua"></th>@endif
@@ -85,35 +85,35 @@
             <tbody>
                 @foreach($servis as $s)
                 <tr style="{{ $s->sumber === 'user' && $s->status === 'Masuk' ? 'background:#fffbeb' : '' }}">
-                    @if(auth()->user()->isSuperAdmin())<td><input type="checkbox" class="bulk-check-servis" value="{{ $s->id }}" onchange="updateBulkBar()"></td>@endif
-                    <td style="text-align:center;font-weight:600;color:#64748b">
+                    @if(auth()->user()->isSuperAdmin())<td data-label="Pilih"><input type="checkbox" class="bulk-check-servis" value="{{ $s->id }}" onchange="updateBulkBar()"></td>@endif
+                    <td data-label="No" style="font-weight:600;color:#64748b">
                         {{ $loop->iteration + ($servis->currentPage() - 1) * $servis->perPage() }}
                     </td>
-                    <td>
+                    <td data-label="Kode">
                         <strong style="color:var(--primary)">{{ $s->kode }}</strong>
                         @if($s->sumber === 'user' && $s->status === 'Masuk')
                         <span class="badge" style="background:#fef3c7;color:#92400e;font-size:.6rem;margin-left:2px">ANTRIAN</span>
                         @endif
                     </td>
-                    <td>{{ $s->tanggal?->format('d/m/Y') }}</td>
-                    <td>
+                    <td data-label="Tanggal">{{ $s->tanggal?->format('d/m/Y') }}</td>
+                    <td data-label="Pelanggan">
                         <div>{{ $s->pelanggan?->nama ?? '-' }}</div>
                         <div class="text-xs text-muted">{{ $s->pelanggan?->no_hp ?? '' }}</div>
                     </td>
-                    <td>
+                    <td data-label="Perangkat">
                         <div>{{ $s->perangkat }}</div>
                         <div class="text-xs text-muted">{{ $s->tipe }}</div>
                     </td>
-                    <td><span class="badge badge-masuk">{{ $s->cabang?->nama ?? '-' }}</span></td>
-                    <td>
+                    <td data-label="Cabang"><span class="badge badge-masuk">{{ $s->cabang?->nama ?? '-' }}</span></td>
+                    <td data-label="Sumber">
                         @if($s->sumber === 'user')
                         <span style="font-size:.76rem;color:#2563eb"><i class="fas fa-mobile-alt"></i> User</span>
                         @else
                         <span style="font-size:.76rem;color:#64748b"><i class="fas fa-desktop"></i> Admin</span>
                         @endif
                     </td>
-                    <td>{{ $s->teknisi?->nama ?? '-' }}</td>
-                    <td>
+                    <td data-label="Teknisi">{{ $s->teknisi?->nama ?? '-' }}</td>
+                    <td data-label="Status">
                         <span class="badge badge-{{ strtolower($s->status) }}">{{ $s->status }}</span>
                         @if($s->status === 'Selesai' && $s->diambil)
                             <span class="badge" style="background:#dcfce7;color:#166534;font-size:.62rem;margin-left:2px">✓ Diambil</span>
@@ -121,8 +121,8 @@
                             <span class="badge" style="background:#fef3c7;color:#92400e;font-size:.62rem;margin-left:2px">⏳ Belum Diambil</span>
                         @endif
                     </td>
-                    <td style="font-weight:700;color:#16a34a">{{ formatRp($s->biaya) }}</td>
-                    <td style="white-space:nowrap">
+                    <td data-label="Biaya" style="font-weight:700;color:#16a34a">{{ formatRp($s->biaya) }}</td>
+                    <td data-label="Aksi" style="white-space:nowrap">
                         <button onclick="openDetailModal({{ $s->id }})" class="btn btn-secondary btn-xs" title="Detail"><i class="fas fa-eye"></i></button>
                         <a href="{{ route('print.servis', $s) }}" class="btn btn-secondary btn-xs" target="_blank" title="Print Thermal"><i class="fas fa-print"></i></a>
                         @if($s->status !== 'Dibatalkan' && (auth()->user()->isAdmin() || auth()->user()->isStaff()))
@@ -198,7 +198,7 @@
         </h3>
     </div>
     <div class="table-wrap">
-        <table style="width:100%">
+        <table class="table-cards" style="width:100%">
             <thead>
                 <tr style="background: #dcfce7;">
                     <th style="padding: 10px; text-align: center; font-size: 0.8rem; color: #166534; width: 50px;">No</th>
@@ -212,15 +212,15 @@
                 @foreach($ringkasanSparepart as $nama => $data)
                     @php $grandTotal += $data['total_harga']; @endphp
                     <tr style="border-bottom: 1px solid #bbf7d0;">
-                        <td style="padding: 10px; font-size: 0.85rem; text-align: center; color: #15803d;">{{ $no++ }}</td>
-                        <td style="padding: 10px; font-size: 0.85rem; font-weight: 600; color: #166534;">{{ $nama }}</td>
-                        <td style="padding: 10px; font-size: 0.85rem; text-align: center; font-weight: 700; color: #16a34a;">{{ $data['qty'] }}</td>
-                        <td style="padding: 10px; font-size: 0.85rem; text-align: right; font-weight: 700; color: #16a34a;">Rp {{ number_format($data['total_harga'], 0, ',', '.') }}</td>
+                        <td data-label="No" style="padding: 10px; font-size: 0.85rem; text-align: center; color: #15803d;">{{ $no++ }}</td>
+                        <td data-label="Nama Sparepart" style="padding: 10px; font-size: 0.85rem; font-weight: 600; color: #166534;">{{ $nama }}</td>
+                        <td data-label="Total Qty" style="padding: 10px; font-size: 0.85rem; text-align: center; font-weight: 700; color: #16a34a;">{{ $data['qty'] }}</td>
+                        <td data-label="Total Nilai" style="padding: 10px; font-size: 0.85rem; text-align: right; font-weight: 700; color: #16a34a;">Rp {{ number_format($data['total_harga'], 0, ',', '.') }}</td>
                     </tr>
                 @endforeach
                 <tr style="background: #dcfce7;">
-                    <td colspan="3" style="padding: 12px 10px; font-size: 0.9rem; font-weight: 800; text-align: right; color: #14532d;">TOTAL KESELURUHAN</td>
-                    <td style="padding: 12px 10px; font-size: 0.9rem; font-weight: 800; text-align: right; color: #14532d;">Rp {{ number_format($grandTotal, 0, ',', '.') }}</td>
+                    <td colspan="3" data-label="" style="padding: 12px 10px; font-size: 0.9rem; font-weight: 800; text-align: right; color: #14532d;">TOTAL KESELURUHAN</td>
+                    <td data-label="Total" style="padding: 12px 10px; font-size: 0.9rem; font-weight: 800; text-align: right; color: #14532d;">Rp {{ number_format($grandTotal, 0, ',', '.') }}</td>
                 </tr>
             </tbody>
         </table>

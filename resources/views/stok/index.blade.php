@@ -154,7 +154,7 @@
 
 <div class="card">
     <div class="table-wrap">
-        <table>
+        <table class="table-cards">
             <thead><tr>
                 <th><a href="{{ route('stok.index', array_merge(\Illuminate\Support\Arr::except(request()->query(), ['page']), ['sort' => 'kode', 'dir' => $sort === 'kode' && $dir === 'asc' ? 'desc' : 'asc'])) }}" style="text-decoration:none;color:inherit">Kode @if($sort === 'kode')<i class="fas fa-caret-{{ $dir === 'asc' ? 'up' : 'down' }}"></i>@endif</a></th>
                 <th><a href="{{ route('stok.index', array_merge(\Illuminate\Support\Arr::except(request()->query(), ['page']), ['sort' => 'nama', 'dir' => $sort === 'nama' && $dir === 'asc' ? 'desc' : 'asc'])) }}" style="text-decoration:none;color:inherit">Nama @if($sort === 'nama')<i class="fas fa-caret-{{ $dir === 'asc' ? 'up' : 'down' }}"></i>@endif</a></th>
@@ -167,12 +167,12 @@
             <tbody>
                 @foreach($stoks as $s)
                 <tr>
-                    <td><strong>{{ $s->kode }}</strong></td>
-                    <td>{{ $s->nama }}</td>
-                    <td><span class="badge badge-masuk">{{ $s->kategori }}</span></td>
-                    <td>{{ $s->merk_hp ?? '-' }}</td>
-                    <td>
-                        <div style="display:flex;align-items:center;gap:6px">
+                    <td data-label="Kode"><strong>{{ $s->kode }}</strong></td>
+                    <td data-label="Nama">{{ $s->nama }}</td>
+                    <td data-label="Kategori"><span class="badge badge-masuk">{{ $s->kategori }}</span></td>
+                    <td data-label="Merk HP">{{ $s->merk_hp ?? '-' }}</td>
+                    <td data-label="Stok">
+                        <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end">
                             <button onclick="quickStok({{ $s->id }}, -1)" class="btn btn-xs" style="background:#fee2e2;color:#dc2626;padding:2px 8px;min-width:28px" title="Kurangi 1"><i class="fas fa-minus"></i></button>
                             @if($s->stok == 0) <span class="badge badge-pending">Habis</span>
                             @elseif($s->stok <= $s->min_alert) <span class="badge badge-proses">{{ $s->stok }}</span>
@@ -181,10 +181,10 @@
                             <button onclick="quickStok({{ $s->id }}, 1)" class="btn btn-xs" style="background:#dcfce7;color:#16a34a;padding:2px 8px;min-width:28px" title="Tambah 1"><i class="fas fa-plus"></i></button>
                         </div>
                     </td>
-                    <td>{{ formatRp($s->modal) }}</td>
-                    <td>{{ formatRp($s->jual) }}</td>
-                    <td>{{ $s->min_alert }}</td>
-                    <td>
+                    <td data-label="Modal">{{ formatRp($s->modal) }}</td>
+                    <td data-label="Jual">{{ formatRp($s->jual) }}</td>
+                    <td data-label="Min Alert">{{ $s->min_alert }}</td>
+                    <td data-label="Barcode">
                         @if($s->barcode)
                         <span class="bc-trigger" onclick="showBarcodePopup({{ $s->id }}, '{{ $s->barcode }}', '{{ addslashes($s->nama) }}', '{{ $s->kode }}', {{ (int) $s->jual }}, {{ $s->stok }}, '{{ $s->satuan ?? 'pcs' }}', '{{ $s->kategori }}', '{{ $s->merk_hp ?? '' }}')">
                             <i class="fas fa-barcode"></i> {{ $s->barcode }}
@@ -193,7 +193,7 @@
                         <span style="font-size:.68rem;color:#94a3b8">-</span>
                         @endif
                     </td>
-                    <td style="white-space:nowrap">
+                    <td data-label="Aksi" style="white-space:nowrap">
                         <a href="{{ route('aktivitas-sparepart.show', $s) }}" class="btn btn-xs" style="background:#fef3c7;color:#b45309" title="Kartu Stok / Aktivitas"><i class="fas fa-clipboard-list"></i></a>
                         <a href="{{ route('stok.edit', $s) }}" class="btn btn-primary btn-xs"><i class="fas fa-edit"></i></a>
                         <form method="POST" action="{{ route('stok.destroy', $s) }}" style="display:inline" onsubmit="return confirm('Hapus?')">
@@ -228,7 +228,7 @@
         <span>Rincian Stok Habis ({{ $daftarStokHabis->count() }} item)</span>
     </div>
     <div class="table-wrap">
-        <table>
+        <table class="table-cards">
             <thead>
                 <tr>
                     <th>Kode</th>
@@ -242,12 +242,12 @@
             <tbody>
                 @foreach($daftarStokHabis as $item)
                 <tr>
-                    <td><strong>{{ $item->kode }}</strong></td>
-                    <td>{{ $item->nama }}</td>
-                    <td><span class="badge badge-masuk">{{ $item->kategori }}</span></td>
-                    <td>{{ $item->merk_hp ?? '-' }}</td>
-                    <td><span class="badge badge-pending">0 (Habis)</span></td>
-                    <td>
+                    <td data-label="Kode"><strong>{{ $item->kode }}</strong></td>
+                    <td data-label="Nama Barang">{{ $item->nama }}</td>
+                    <td data-label="Kategori"><span class="badge badge-masuk">{{ $item->kategori }}</span></td>
+                    <td data-label="Merk HP">{{ $item->merk_hp ?? '-' }}</td>
+                    <td data-label="Stok"><span class="badge badge-pending">0 (Habis)</span></td>
+                    <td data-label="Aksi">
                         <a href="{{ route('stok.edit', $item) }}" class="btn btn-primary btn-xs" title="Tambah Stok">
                             <i class="fas fa-plus"></i> Isi Stok
                         </a>

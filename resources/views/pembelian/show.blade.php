@@ -28,9 +28,9 @@
         @if(!$pembelian->isDibatalkan())
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;padding:10px;background:#f8fafc;border-radius:10px">
             @if($pembelian->isDraft())
-            <form method="POST" action="{{ route('pembelian.proses', $pembelian) }}" style="display:flex;gap:6px;align-items:center" onsubmit="return confirm('Proses pembelian ini? Stok akan bertambah otomatis.')">
+            <form method="POST" action="{{ route('pembelian.proses', $pembelian) }}" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap" onsubmit="return confirm('Proses pembelian ini? Stok akan bertambah otomatis.')">
                 @csrf
-                <input type="number" name="dibayar" min="0" step="1" value="0" placeholder="Dibayar" style="width:110px;padding:5px 8px;font-size:.78rem;border:1px solid #e2e8f0;border-radius:6px">
+                <input type="text" name="dibayar" inputmode="numeric" data-format-rupiah value="0" placeholder="Dibayar (mis. 500.000)" style="width:150px;padding:5px 8px;font-size:.78rem;border:1px solid #e2e8f0;border-radius:6px">
                 <button type="submit" class="btn btn-sm" style="background:#2563eb;color:#fff"><i class="fas fa-play"></i> Proses (Stok Masuk)</button>
             </form>
             <a href="{{ route('pembelian.edit', $pembelian) }}" class="btn btn-sm" style="background:#fef3c7;color:#b45309"><i class="fas fa-edit"></i> Edit Item</a>
@@ -126,11 +126,20 @@
                 @csrf
                 <div class="form-group">
                     <label>Jumlah Bayar (maks {{ formatRp($pembelian->sisaHutang()) }})</label>
-                    <!-- PERBAIKAN FINAL: round() memastikan HTML attribute max & value selalu bilangan bulat, mencegah konflik dengan step="1" -->
-                    <input type="number" name="jumlah" class="form-input" min="1" max="{{ round($pembelian->sisaHutang()) }}" step="1" value="{{ round($pembelian->sisaHutang()) }}" required>
-                    <div style="display:flex;gap:6px;margin-top:6px">
-                        <!-- PERBAIKAN: round() di JS inline agar nilai yang diisi tombol juga bulat sempurna -->
-                        <button type="button" class="btn btn-xs" style="background:#dcfce7;color:#16a34a" onclick="this.form.jumlah.value={{ round($pembelian->sisaHutang()) }}">Lunas Semua</button>
+                    {{-- Input teks berformat ribuan "500.000" — bebas error "Failed value"
+                       yang muncul di input type=number saat user mengetik titik pemisah.
+                       data-format-rupiah otomatis merapikan tampilan & mengubah ke angka
+                       murni saat form disubmit (handler global di layout). --}}
+                    <input type="text" name="jumlah" class="form-input" inputmode="numeric" autocomplete="off"
+                           data-format-rupiah
+                           value="{{ old('jumlah', number_format((float) $pembelian->sisaHutang(), 0, ',', '.')) }}"
+                           placeholder="Contoh: 500.000" required>
+                    @error('jumlah')
+                    <div style="color:#dc2626;font-size:.74rem;margin-top:4px"><i class="fas fa-exclamation-circle"></i> {{ $message }}</div>
+                    @enderror
+                    <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+                        <button type="button" class="btn btn-xs" style="background:#dcfce7;color:#16a34a" onclick="isiJumlahBayar(this, {{ (int) ceil((float) $pembelian->sisaHutang()) }})">Lunas Semua</button>
+                        <button type="button" class="btn btn-xs" style="background:#dbeafe;color:#1d4ed8" onclick="isiJumlahBayar(this, Math.ceil({{ (float) $pembelian->sisaHutang() }} / 2))">Setengah</button>
                     </div>
                 </div>
                 <div class="form-group">
@@ -189,11 +198,12 @@
         <div class="card mb-4">
             <h3 style="font-size:.92rem;margin-bottom:12px"><i class="fas fa-history" style="color:#16a34a"></i> Riwayat Pembayaran</h3>
             @if($pembelian->payments->count() > 0)
+            @php $daftarPembayaran = $pembelian->payments->unique('id')->values(); @endphp
             <div class="table-wrap">
                 <table>
                     <thead><tr><th>Tgl</th><th>Jumlah</th><th>Metode</th><th>Oleh</th><th>Ref</th></tr></thead>
                     <tbody>
-                        @foreach($pembelian->payments as $pay)
+                        @foreach($daftarPembayaran as $pay)
                         <tr>
                             <td style="font-size:.76rem">{{ $pay->tanggal?->format('d/m/y') }}</td>
                             <td style="font-weight:600;color:#16a34a">{{ formatRp($pay->jumlah) }}</td>
@@ -202,7 +212,7 @@
                             <td style="font-size:.68rem;color:#94a3b8">{{ $pay->ref_kode }}</td>
                         </tr>
                         @endforeach
-                        <tr style="background:#f0fdf4"><td colspan="2" style="font-weight:700">Total Dibayar</td><td colspan="3" style="font-weight:700;color:#16a34a">{{ formatRp($pembelian->payments->sum('jumlah')) }}</td></tr>
+                        <tr style="background:#f0fdf4"><td colspan="2" style="font-weight:700">Total Dibayar</td><td colspan="3" style="font-weight:700;color:#16a34a">{{ formatRp($daftarPembayaran->sum('jumlah')) }}</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -270,6 +280,12 @@
 </div>
 
 <script>
+// Tombol cepat isi jumlah bayar (format ribuan Indonesia, konsisten dgn data-format-rupiah)
+function isiJumlahBayar(btn, val) {
+    const input = btn.closest('form')?.querySelector('input[name="jumlah"]');
+    if (input) input.value = Number(Math.max(0, Math.round(val || 0))).toLocaleString('id-ID');
+}
+
 // Isi otomatis harga retur dari harga beli item terpilih
 document.getElementById('returStok')?.addEventListener('change', function () {
     const opt = this.selectedOptions[0];
@@ -283,5 +299,7 @@ document.getElementById('returStok')?.addEventListener('change', function () {
 
 <style>
 @media (max-width: 768px) { .grid-responsive { grid-template-columns: 1fr !important; } }
+/* Supaya anchor #bayar / #retur tidak ketutup topbar sticky */
+#bayar, #retur { scroll-margin-top: 80px; }
 </style>
 @endsection

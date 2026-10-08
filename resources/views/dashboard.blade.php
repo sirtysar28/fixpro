@@ -15,6 +15,8 @@
     /* dash-grid-21 */
     .dash-grid-21 { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-bottom: 18px; }
     .dash-grid-12 { display: grid; grid-template-columns: 1fr 2fr; gap: 14px; margin-bottom: 18px; }
+    /* Mini stat (Ringkasan Bulan Ini) — 3 kolom di HP biar kompak */
+    .dash-mini-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
 
     .dash-card {
         background: #fff;
@@ -119,7 +121,50 @@
         .dash-footer-bar { left: 0; gap: 16px; font-size: .68rem; }
     }
     @media (max-width: 480px) {
-        .dash-grid-6 { grid-template-columns: 1fr; }
+        .dash-grid-6 { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    }
+
+    /* ====== MOBILE (≤768px): footer bar & kartu stat rapi, gak ketimpa bottom-nav ====== */
+    @media (max-width: 768px) {
+        /* Bar statistik bawah: full-width & nangkring DI ATAS bottom-nav */
+        .dash-footer-bar {
+            left: 0 !important; right: 0;
+            bottom: calc(60px + env(safe-area-inset-bottom)) !important;
+            height: 40px;
+            gap: 14px;
+            font-size: .66rem;
+            padding: 0 12px;
+            overflow-x: auto;
+            justify-content: flex-start;
+            scrollbar-width: none;
+        }
+        .dash-footer-bar::-webkit-scrollbar { display: none; }
+        .dash-footer-item, .dash-footer-live { flex-shrink: 0; }
+        /* Ruang untuk bottom-nav (60px) + footer bar (40px) + tombol chat float */
+        .page-content { padding-bottom: calc(120px + env(safe-area-inset-bottom)) !important; }
+        /* Kartu statistik: angka panjang (Rp jutaan) gak kepotong */
+        .dash-card { padding: 14px; }
+        .dash-card .dc-icon { width: 34px; height: 34px; font-size: .85rem; margin-bottom: 8px; }
+        .dash-card .dc-value { font-size: 1.08rem; overflow-wrap: anywhere; }
+        .dash-card-highlight .dc-value { font-size: 1.3rem; }
+        /* Header section lebih ringkas */
+        .dash-section { font-size: .78rem; flex-wrap: wrap; }
+        /* Tombol chat float naik lagi: harus di atas bottom-nav + bar statistik dashboard */
+        #chatWidget, #adminChatWidget { bottom: calc(104px + env(safe-area-inset-bottom)) !important; }
+        #chatPanel, #adminChatPanel, #adminChatDetail { bottom: calc(104px + env(safe-area-inset-bottom)) !important; }
+        /* Kartu stat 6: tetap 2 kolom kompak di HP (bukan 1 kolom panjang) */
+        .dash-grid-6 { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .dash-grid-6 .dash-card { padding: 12px; }
+        .dash-grid-6 .dc-icon { width: 30px; height: 30px; font-size: .78rem; margin-bottom: 6px; }
+        .dash-grid-6 .dc-label { font-size: .6rem; letter-spacing: .2px; }
+        /* Mini stat Ringkasan Bulan Ini: 3 per baris, angka lebih kecil */
+        .dash-mini-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+        .dash-mini-grid > div { padding: 9px 4px !important; }
+        .dash-mini-grid > div > div:first-child { font-size: 1rem !important; }
+        .dash-mini-grid > div > div:last-child { font-size: .58rem !important; }
+        /* Saldo tracker gak overflow */
+        .saldo-tracker { flex-wrap: wrap; gap: 6px 12px; padding: 14px 16px; }
+        .saldo-tracker .saldo-value { font-size: 1.25rem; overflow-wrap: anywhere; }
     }
 
     /* Dark mode dashboard */
@@ -477,7 +522,7 @@
             Ringkasan Bulan Ini
             <div style="font-size:.64rem;color:#94a3b8;font-weight:400;margin-top:2px">Data transaksi bulan {{ now()->format('F Y') }}</div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="dash-mini-grid">
             <div style="padding:12px;background:#f8fafc;border-radius:10px;text-align:center;border:1px solid #e2e8f0">
                 <div style="font-size:1.2rem;font-weight:800;color:#2563eb">{{ $servisMasuk }}</div>
                 <div style="font-size:.68rem;color:#3b82f6;font-weight:600">Servis Masuk</div>

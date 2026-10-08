@@ -115,8 +115,10 @@
                 <div style="display:flex;justify-content:space-between;padding-top:10px;border-top:2px solid #e2e8f0;margin-bottom:14px;font-size:1.1rem"><strong>Total Pembelian</strong><strong id="sumTotal" style="color:var(--primary)">Rp 0</strong></div>
                 <div class="form-group">
                     <label>Dibayar (Rp)</label>
-                    <!-- PERBAIKAN: step="1" agar sinkron dengan total yang dibulatkan -->
-                    <input type="number" name="dibayar" id="dibayar" class="form-input" min="0" step="1" value="{{ old('dibayar', 0) }}" oninput="recalc()">
+                    {{-- Input teks berformat ribuan — bebas error "Failed value" dari
+                       input type=number saat user mengetik titik pemisah ribuan. --}}
+                    <input type="text" name="dibayar" id="dibayar" class="form-input" inputmode="numeric" autocomplete="off"
+                           data-format-rupiah value="{{ old('dibayar', 0) }}" oninput="recalc()">
                     <div style="display:flex;gap:6px;margin-top:6px">
                         <button type="button" class="btn btn-xs" style="background:#dcfce7;color:#16a34a" onclick="setDibayar('lunas')">Bayar Lunas</button>
                         <button type="button" class="btn btn-xs" style="background:#fee2e2;color:#dc2626" onclick="setDibayar(0)">Hutang Semua</button>
@@ -258,7 +260,7 @@ function recalc() {
     const total     = Math.max(0, subtotal - diskon) + biaya + ongkir;
 
     const isDraft = document.getElementById('statusTransaksi').value === 'Draft';
-    const dibayar = isDraft ? 0 : parseFloat(document.getElementById('dibayar')?.value || 0);
+    const dibayar = isDraft ? 0 : parseAngkaRupiah(document.getElementById('dibayar')?.value);
     const sisa    = Math.max(0, total - dibayar);
 
     document.getElementById('sumSubtotal').textContent = 'Rp ' + formatRpJs(subtotal);
@@ -307,8 +309,8 @@ function setDibayar(mode) {
         const totalRaw = (subtotal - (subtotal * dpersen / 100) - dnom) + biaya + ongkir;
         const totalBersih = Math.max(0, Math.round(totalRaw)); 
         
-        // Masukkan nilai bulat ke input
-        inputDibayar.value = totalBersih;
+        // Masukkan nilai bulat ke input (dengan format ribuan, konsisten input berformat)
+        inputDibayar.value = totalBersih.toLocaleString('id-ID');
     } else {
         inputDibayar.value = 0;
     }
@@ -328,6 +330,12 @@ document.getElementById('statusTransaksi').addEventListener('change', () => {
 function formatRpJs(n) {
     n = Math.round(n || 0);
     return n.toLocaleString('id-ID');
+}
+
+// Baca angka dari input berformat rupiah ("500.000" → 500000)
+function parseAngkaRupiah(v) {
+    const n = parseFloat(String(v == null ? '' : v).replace(/[^0-9]/g, ''));
+    return isNaN(n) ? 0 : n;
 }
 
 // init 1 baris kosong

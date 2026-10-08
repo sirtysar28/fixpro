@@ -41,6 +41,14 @@
         .ttd-box .line { margin-top: 52px; border-top: 1px dashed #94a3b8; padding-top: 5px; font-size: 10.5px; font-weight: 600; }
         .footer { margin-top: 18px; text-align: center; font-size: 9.5px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 8px; }
         .catatan { background: #fffbeb; border-left: 3px solid #f59e0b; padding: 8px 12px; border-radius: 4px; font-size: 10.5px; color: #78350f; margin-bottom: 14px; white-space: pre-wrap; }
+        /* Rincian pembayaran & retur */
+        .rincian { margin-bottom: 14px; }
+        .rincian th { background: #f1f5f9; color: #334155; font-size: 9px; text-transform: uppercase; padding: 5px 8px; text-align: left; border-bottom: 1px solid #cbd5e1; }
+        .rincian td { padding: 4px 8px; border-bottom: 1px dashed #e2e8f0; font-size: 10px; }
+        .rincian .num { text-align: right; }
+        .rincian .ctr { text-align: center; }
+        .rincian tfoot td { border-top: 1.5px solid #1e293b; border-bottom: none; font-weight: 800; font-size: 10.5px; padding-top: 5px; }
+        .rincian .neg { color: #dc2626; }
         @media print { body { background: #fff; } .nota { box-shadow: none; border-radius: 0; max-width: none; } .no-print { display: none !important; } }
         .toolbar { max-width: 148mm; margin: 12px auto 0; display: flex; gap: 8px; }
         .toolbar button, .toolbar a { padding: 8px 18px; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; text-decoration: none; font-size: 12px; }
@@ -144,6 +152,54 @@
             <tr class="grand"><td>SISA HUTANG</td><td class="num {{ $pembelian->sisaHutang() > 0 ? 'neg' : 'pos' }}">Rp {{ number_format($pembelian->sisaHutang(), 0, ',', '.') }}</td></tr>
         </table>
     </div>
+
+    {{-- ===== Rincian pembayaran (anti-dobel: unique id, cetak sekali per pembayaran) ===== --}}
+    @php
+        // ANTI-DOBEL: unggul duplikasi berdasarkan id & ref_kode sehingga tiap pembayaran hanya tercetak sekali
+        $rincianPembayaran = $pembelian->payments->unique('id')->unique('ref_kode')->values();
+        $rincianRetur = $pembelian->returns->unique('id')->values();
+    @endphp
+    @if($rincianPembayaran->count() > 0)
+    <table class="items rincian">
+        <thead>
+            <tr><th colspan="5">RINCIAN PEMBAYARAN</th></tr>
+            <tr><th>Tanggal</th><th>Referensi</th><th class="ctr">Metode</th><th>Catatan</th><th class="num">Jumlah</th></tr>
+        </thead>
+        <tbody>
+            @foreach($rincianPembayaran as $pay)
+            <tr>
+                <td>{{ $pay->tanggal?->format('d/m/y') }}</td>
+                <td style="font-size:9px;color:#64748b">{{ $pay->ref_kode }}</td>
+                <td class="ctr">{{ $pay->metode }}</td>
+                <td style="font-size:9px;color:#64748b">{{ $pay->catatan ? Str::limit($pay->catatan, 28) : '-' }}</td>
+                <td class="num">{{ number_format((float) $pay->jumlah, 0, ',', '.') }}</td>
+            </tr>
+            @endforeach
+        </tbody>
+        <tfoot>
+            <tr><td colspan="4">TOTAL DIBAYAR</td><td class="num">Rp {{ number_format((float) $rincianPembayaran->sum('jumlah'), 0, ',', '.') }}</td></tr>
+        </tfoot>
+    </table>
+    @endif
+
+    @if($rincianRetur->count() > 0)
+    <table class="items rincian">
+        <thead>
+            <tr><th colspan="4">RINCIAN RETUR</th></tr>
+            <tr><th>Tanggal</th><th>Barang</th><th class="ctr">Qty</th><th class="num">Nilai</th></tr>
+        </thead>
+        <tbody>
+            @foreach($rincianRetur as $ret)
+            <tr>
+                <td>{{ $ret->tanggal?->format('d/m/y') }}</td>
+                <td>{{ $ret->nama_barang }}</td>
+                <td class="ctr">{{ $ret->qty }}</td>
+                <td class="num neg">- {{ number_format((float) $ret->nilai, 0, ',', '.') }}</td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+    @endif
 
     {{-- ===== Status pembayaran ===== --}}
     @php $sb = $pembelian->statusBadge(); @endphp

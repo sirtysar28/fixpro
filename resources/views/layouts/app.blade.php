@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ config('app.name') }} - @yield('title', 'Dashboard')</title>
     <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
+    {{-- ===== PWA: bisa di-install di HP (Add to Home Screen / Install App) ===== --}}
+    <link rel="manifest" href="{{ asset('manifest.json') }}">
+    <meta name="theme-color" content="#0d9488">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="FIXPRO">
+    <link rel="apple-touch-icon" href="{{ asset('icons/icon-192.png') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     {{-- Preconnect untuk mempercepat & menstabilkan loading font dari CDN --}}
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -140,8 +148,12 @@
             body.dark .bottom-nav-sheet .sheet-link { background: #0f172a; color: #cbd5e1; }
             body.dark .bottom-nav-sheet .sheet-link i { color: #2dd4bf; }
             body.dark .bottom-nav-sheet .sheet-handle { background: #475569; }
-            /* Geser chat widget ke atas agar tidak ketutup bottom nav */
-            #chatWidget, #chatPanel { bottom: 76px !important; }
+            /* Tombol chat float: pindah ke KANAN bawah, DI ATAS bottom-nav (gak numpuk footer) */
+            #chatWidget, #adminChatWidget {
+                left: auto !important;
+                right: 14px !important;
+                bottom: calc(74px + env(safe-area-inset-bottom)) !important;
+            }
         }
 
         /* Cards */
@@ -216,16 +228,116 @@
 
         /* Responsive */
         @media (max-width: 768px) {
-            .sidebar { transform: translateX(-100%); }
+            /* Sidebar di mobile: harus PALING DEPAN — di atas topbar (z-500),
+               bottom-nav (z-998) & sheet (z-1000) — biar gak ketutupan header lagi */
+            .sidebar { transform: translateX(-100%); z-index: 1200; box-shadow: 12px 0 40px rgba(0,0,0,.18); }
             .sidebar.open { transform: translateX(0); }
+            .sidebar-overlay { z-index: 1100 !important; }
             .main-content { margin-left: 0 !important; }
             .form-row { grid-template-columns: 1fr; }
             .grid-2 { grid-template-columns: 1fr; }
-            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
             .mobile-toggle { display: block !important; }
+
+            /* ===== TOPBAR RESPONSIVE (tampilan mobile setelah login) ===== */
+            .topbar {
+                height: auto; min-height: 56px;
+                flex-wrap: wrap;
+                padding: 8px 10px;
+                gap: 6px 4px;
+                align-content: flex-start;
+            }
+            .topbar > div:first-child { min-width: 0; }
+            .topbar h2 {
+                font-size: .92rem;
+                white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+                max-width: 56vw;
+            }
+            .topbar-actions {
+                flex: 1 1 100%;
+                order: 3;
+                flex-wrap: wrap;
+                justify-content: flex-end;
+                gap: 4px;
+            }
+            /* Pencarian universal pindah ke baris sendiri (full width), di atas baris ikon */
+            #universalSearchWrap { flex: 1 1 100%; order: -1; }
+            #universalSearch { width: 100% !important; }
+            /* Info user cukup avatar saja di mobile */
+            .topbar-user { padding: 4px 6px; }
+            .topbar-user-info { display: none !important; }
+            .topbar-divider { display: none !important; }
+            .topbar-icon-btn { width: 34px; height: 34px; font-size: .82rem; flex: 0 0 auto; }
+            .notif-dropdown { width: 320px; max-width: calc(100vw - 16px); }
+            /* Konten lebih lega di layar kecil */
+            .page-content { padding: 14px 10px; }
+            .card { padding: 14px; }
+            .stat-card { padding: 14px; }
+            .stat-value { font-size: 1.3rem; }
+            /* Cegah iOS auto-zoom saat fokus input */
+            input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]),
+            select, textarea { font-size: 16px !important; }
+            /* Kalkulator & chat tidak keluar layar — panel nangkring DI ATAS bottom-nav */
+            #calcPanel { right: 8px !important; width: calc(100vw - 16px) !important; max-width: 300px !important; }
+            #chatPanel, #adminChatPanel, #adminChatDetail {
+                width: calc(100vw - 16px) !important;
+                left: 8px !important; right: 8px !important;
+                height: 62vh !important;
+                max-height: calc(100vh - 160px) !important;
+                bottom: calc(74px + env(safe-area-inset-bottom)) !important;
+            }
+
+            /* ============================================
+               FULL RESPONSIVE — SEMUA HALAMAN
+               1. Grid inline dipaksa 1 kolom (anti overflow)
+               2. Flex inline boleh turun baris
+               3. Lebar tetap tidak boleh melebihi layar
+               4. Tabel data → mode kartu (class .table-cards)
+            ============================================ */
+            .page-content div[style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+            .page-content div[style*="display:flex"] { flex-wrap: wrap !important; }
+            .page-content [style*="width:"] { max-width: 100% !important; }
+            .flex-between { flex-wrap: wrap; gap: 10px; }
+
+            /* Tabel biasa: scroll horizontal halus & konsisten */
+            .table-wrap { -webkit-overflow-scrolling: touch; }
+            .table-wrap > table { min-width: 640px; }
+
+            /* ===== TABEL MODE KARTU (full responsive di HP) =====
+               Pakai: <table class="table-cards"> + td data-label="Label" */
+            table.table-cards, .table-wrap > table.table-cards { min-width: 0 !important; }
+            table.table-cards thead { display: none; }
+            table.table-cards, table.table-cards tbody, table.table-cards tr, table.table-cards td { display: block; width: 100%; }
+            table.table-cards tr {
+                background: #fff;
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                margin-bottom: 12px;
+                padding: 4px 12px;
+                box-shadow: 0 1px 4px rgba(0,0,0,.05);
+            }
+            table.table-cards tr:hover td { background: transparent; }
+            table.table-cards td {
+                display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+                gap: 8px 12px; text-align: right; white-space: normal !important;
+                border-bottom: 1px dashed #f1f5f9; padding: 9px 2px;
+                overflow-wrap: anywhere;
+            }
+            table.table-cards td:last-child { border-bottom: none; }
+            table.table-cards td::before {
+                content: attr(data-label);
+                font-size: .64rem; font-weight: 700; color: #94a3b8;
+                text-transform: uppercase; letter-spacing: .4px;
+                text-align: left; flex-shrink: 0;
+            }
+            table.table-cards td.no-label::before { content: ''; display: none; }
+            table.table-cards td.no-label { text-align: left; justify-content: flex-start; }
+            body.dark table.table-cards tr { background: #1e293b; border-color: #334155; }
+            body.dark table.table-cards td { border-bottom-color: #1e293b; }
         }
         @media (max-width: 480px) {
             .stats-grid { grid-template-columns: 1fr; }
+            .topbar h2 { max-width: 52vw; font-size: .85rem; }
         }
         .mobile-toggle { display: none; background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #374151; }
 
@@ -833,7 +945,7 @@
                     $gtActive = $gtLangs[$gtCurrent];
                 @endphp
                 @if(auth()->user()->isAdmin() || auth()->user()->isStaff() || auth()->user()->isSuperAdmin())
-                <div style="position:relative">
+                <div style="position:relative" id="universalSearchWrap">
                     <input type="text" id="universalSearch" placeholder="Cari servis, pelanggan, IMEI..." style="padding:7px 14px 7px 32px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.78rem;width:220px;background:#f8fafc;outline:none;transition:border .2s" onfocus="this.style.borderColor='var(--primary)';this.style.boxShadow='0 0 0 3px var(--primary-bg)'" onblur="this.style.borderColor='#e2e8f0';this.style.boxShadow='none'" onkeydown="if(event.key==='Enter')doUniversalSearch()">
                     <i class="fas fa-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:.76rem"></i>
                 </div>
@@ -1134,6 +1246,7 @@
                 <a href="{{ route('whatsapp.index') }}" class="sheet-link"><i class="fab fa-whatsapp"></i> WhatsApp</a>
                 @endif
                 <a href="{{ route('settings.index') }}" class="sheet-link"><i class="fas fa-cog"></i> Pengaturan</a>
+                <a href="#" class="sheet-link" id="pwaInstallBtn" onclick="piInstallApp();return false" style="display:none"><i class="fas fa-download" style="color:var(--accent)"></i> Install App</a>
                 @if(auth()->user()->isSuperAdmin())
                 <a href="{{ route('sync.index') }}" class="sheet-link"><i class="fas fa-sync-alt"></i> Sinkronisasi</a>
                 <a href="{{ route('audit-log.index') }}" class="sheet-link"><i class="fas fa-clipboard-list"></i> Audit Log</a>
@@ -1144,6 +1257,7 @@
                 <a href="{{ route('arsip-servis.index') }}" class="sheet-link"><i class="fas fa-search-location"></i> Lacak Servis</a>
                 <a href="{{ route('subscription.index') }}" class="sheet-link"><i class="fas fa-star"></i> Langganan</a>
                 <a href="{{ route('profile.edit') }}" class="sheet-link"><i class="fas fa-user-edit"></i> Profil</a>
+                <a href="#" class="sheet-link" id="pwaInstallBtnUser" onclick="piInstallApp();return false" style="display:none"><i class="fas fa-download" style="color:var(--accent)"></i> Install App</a>
             @endif
         </div>
     </div>
@@ -1493,6 +1607,149 @@
                 el.value = String(el.value).replace(/[^0-9]/g, '');
                 if (el.value === '') el.value = '0';
             });
+        });
+
+        /* ========================================================
+           ANTI SUBMIT DOBEL (klik 2x / enter 2x / jaringan lambat)
+           Sumber utama data dobel (pembayaran tercatat 2x).
+           Submit kedua dalam 2.5 detik pada form yang sama diblokir.
+        ======================================================== */
+        document.addEventListener('submit', function (e) {
+            if (e.defaultPrevented) return; // form dibatalkan (mis. confirm() = Cancel)
+            var form = e.target;
+            if (!form || !form.setAttribute) return;
+            if (form.dataset.piSubmitted === '1') {
+                e.preventDefault();
+                return;
+            }
+            form.dataset.piSubmitted = '1';
+            setTimeout(function () { try { delete form.dataset.piSubmitted; } catch (err) { form.dataset.piSubmitted = ''; } }, 2500);
+        }, false);
+
+        /* ========================================================
+           AUTO CARD-VIEW TABEL (mobile ≤768px) — FULL RESPONSIVE
+           Semua tabel ber-<thead> di dalam halaman OTOMATIS berubah
+           jadi kartu (label kiri, nilai kanan) — tanpa edit per halaman.
+           • Tabel tanpa <thead> (info label:nilai) dilewati (sudah responsif)
+           • Baris colspan (empty state / TOTAL) → tanpa label, rapi
+           • Tabel hasil render JS (keranjang, dll) ikut dikerjakan ulang
+           • Tambahkan class="no-cards" pada elemen pembungkus untuk opt-out
+        ========================================================= */
+        (function () {
+            var mq = window.matchMedia('(max-width: 768px)');
+            function labelRows(table) {
+                var headRow = table.tHead && table.tHead.rows[0];
+                if (!headRow) return;
+                var headers = [];
+                Array.prototype.forEach.call(headRow.cells, function (th) {
+                    headers.push((th.textContent || '').replace(/\s+/g, ' ').trim());
+                });
+                Array.prototype.forEach.call(table.tBodies, function (tbody) {
+                    Array.prototype.forEach.call(tbody.rows, function (tr) {
+                        var idx = 0;
+                        Array.prototype.forEach.call(tr.cells, function (td) {
+                            if (td.tagName !== 'TD') return;
+                            var span = td.colSpan || 1;
+                            if (span > 1 || !headers[idx]) {
+                                td.classList.add('no-label');
+                            } else if (!td.hasAttribute('data-label')) {
+                                td.setAttribute('data-label', headers[idx]);
+                            }
+                            idx += span;
+                        });
+                    });
+                });
+                /* Baris TOTAL di <tfoot> ikut diberi label */
+                if (table.tFoot && table.tFoot.rows.length) {
+                    Array.prototype.forEach.call(table.tFoot.rows, function (tr) {
+                        var idx = 0;
+                        Array.prototype.forEach.call(tr.cells, function (td) {
+                            var span = td.colSpan || 1;
+                            if (span > 1 || !headers[idx]) {
+                                td.classList.add('no-label');
+                            } else if (!td.hasAttribute('data-label')) {
+                                td.setAttribute('data-label', headers[idx]);
+                            }
+                            idx += span;
+                        });
+                    });
+                }
+            }
+            function run() {
+                if (!mq.matches) return;
+                document.querySelectorAll('.page-content table').forEach(function (table) {
+                    if (table.closest('.no-cards')) return;
+                    if (!table.tHead || !table.tHead.rows.length) return;
+                    var already = table.classList.contains('table-cards');
+                    labelRows(table);
+                    if (!already) table.classList.add('table-cards');
+                });
+            }
+            var t = null;
+            function schedule() {
+                clearTimeout(t);
+                t = setTimeout(run, 200);
+            }
+            document.addEventListener('DOMContentLoaded', run);
+            window.addEventListener('load', run); /* fallback kalau DOMContentLoaded kelewat */
+            window.piAutoCards = run; /* bisa dipanggil manual: piAutoCards() */
+            if (mq.addEventListener) { mq.addEventListener('change', function (e) { if (e.matches) run(); }); }
+            else if (mq.addListener) { mq.addListener(function (e) { if (e.matches) run(); }); }
+            if (document.body) { new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true }); }
+        })();
+
+        /* ========================================================
+           PWA — Service Worker + Tombol Install App
+           • App bisa di-install di HP (standalone, icon sendiri)
+           • Android/Chrome: muncul dialog install native
+           • iPhone/iPad: muncul panduan "Add to Home Screen"
+        ========================================================= */
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('{{ url('/') }}/sw.js').catch(function () {});
+            });
+        }
+        var piDeferredPrompt = null;
+        function piShowInstallBtns(show) {
+            ['pwaInstallBtn', 'pwaInstallBtnUser'].forEach(function (id) {
+                var b = document.getElementById(id);
+                if (b) b.style.display = show ? 'flex' : 'none';
+            });
+        }
+        function piIsStandalone() {
+            return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+        }
+        window.addEventListener('beforeinstallprompt', function (e) {
+            e.preventDefault();
+            piDeferredPrompt = e;
+            piShowInstallBtns(true);
+        });
+        window.addEventListener('appinstalled', function () {
+            piDeferredPrompt = null;
+            piShowInstallBtns(false);
+        });
+        function piInstallApp() {
+            if (piDeferredPrompt) {
+                piDeferredPrompt.prompt();
+                piDeferredPrompt.userChoice.then(function () {
+                    piDeferredPrompt = null;
+                    piShowInstallBtns(false);
+                });
+                return;
+            }
+            var isIos = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+            var isStandalone = piIsStandalone();
+            if (isStandalone) {
+                alert('Aplikasi FIXPRO sudah ter-install di HP Anda ✅');
+                return;
+            }
+            alert(isIos
+                ? 'Cara install di iPhone/iPad:\n1. Buka menu Share (ikon kotak dengan panah ke atas)\n2. Pilih "Add to Home Screen" / "Tambah ke Layar Utama"\n3. Tekan "Add" — FIXPRO jadi app sendiri di homescreen'
+                : 'Cara install di Android:\n1. Buka menu browser (titik tiga ⋮)\n2. Pilih "Install app" / "Tambahkan ke layar utama"\nAtau buka Chrome → menu ⋮ → Install aplikasi.');
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+            /* Tampilkan tombol install jika belum jadi app ter-install (iOS tak punya event prompt) */
+            if (!piIsStandalone()) piShowInstallBtns(true);
         });
 
         document.addEventListener('DOMContentLoaded', function () {

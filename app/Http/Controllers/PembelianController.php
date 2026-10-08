@@ -393,6 +393,7 @@ class PembelianController extends Controller
     public function nota(Pembelian $pembelian)
     {
         $this->checkCabangAccess($pembelian);
+        $pembelian->load(['payments.user', 'returns']);
         $cabang = $pembelian->cabang;
         $cabangId = $cabang?->id ?? 1;
 
@@ -613,11 +614,10 @@ class PembelianController extends Controller
     {
         $this->checkCabangAccess($pembelian);
 
-        // PERBAIKAN: Bulatkan nilai sisa hutang untuk mencegah error floating point pada validasi max
-        $maxHutang = round($pembelian->sisaHutang());
-
+        // Validasi longal tapi aman: angka berapapun boleh masuk (termasuk "500000" hasil
+        // format ribuan), batas atas dicek manual agar tidak pernah gagal karena float.
         $request->validate([
-            'jumlah' => 'required|numeric|min:1|max:' . $maxHutang,
+            'jumlah' => ['required', 'numeric', 'min:0.01'],
             'metode' => 'required|in:Cash,Transfer,QRIS',
             'tanggal_bayar' => 'nullable|date',
         ]);
@@ -625,14 +625,40 @@ class PembelianController extends Controller
         if ($pembelian->isDibatalkan() || $pembelian->isDraft()) {
             return back()->with('error', 'Transaksi ini tidak bisa dibayar.');
         }
-        if ($maxHutang <= 0) {
+
+        $sisaHutang = round((float) $pembelian->sisaHutang(), 2);
+        if ($sisaHutang <= 0.01) {
             return back()->with('error', 'Tidak ada sisa hutang.');
         }
 
         DB::beginTransaction();
         try {
-            $jumlah = (float) $request->jumlah;
-            $tanggal = $request->tanggal_bayar ?? now()->format('Y-m-d');
+            $jumlah  = round((float) $request->jumlah, 2);
+            $tanggal = $request->tanggal_bayar ?: now()->format('Y-m-d');
+
+            // ANTI-DOBEL: pembayaran identik yang baru saja dicatat (double click /
+            // submit ganda) tidak dicatat dua kali.
+            $duplikat = PembelianPayment::where('pembelian_id', $pembelian->id)
+                ->where('jumlah', $jumlah)
+                ->where('tanggal', $tanggal)
+                ->where('created_at', '>=', now()->subSeconds(10))
+                ->exists();
+            if ($duplikat) {
+                DB::rollBack();
+                return back()->with('error', 'Pembayaran yang sama baru saja dicatat — data dobel dicegah otomatis.');
+            }
+
+            // Jumlah melebihi sisa hutang → otomatis dipas-kan ke sisa hutang (lunas),
+            // tidak ditolak, supaya kasir tidak pernah gagal membayar.
+            $dipaskan = false;
+            if ($jumlah > $sisaHutang) {
+                $jumlah   = $sisaHutang;
+                $dipasan  = true;
+            }
+            if ($jumlah <= 0) {
+                DB::rollBack();
+                return back()->with('error', 'Jumlah bayar tidak valid.');
+            }
 
             // Riwayat pembayaran
             PembelianPayment::create([
@@ -662,7 +688,12 @@ class PembelianController extends Controller
 
             AuditLogService::log('pembelian', 'bayar', "Bayar hutang {$pembelian->kode}: Rp " . number_format($jumlah) . " ({$request->metode}). Sisa: Rp " . number_format($pembelian->fresh()->sisaHutang()), $pembelian);
 
-            return back()->with('success', "Pembayaran Rp " . number_format($jumlah) . " berhasil. Sisa hutang: Rp " . number_format($pembelian->fresh()->sisaHutang()) . '.');
+            $pesan = 'Pembayaran Rp ' . number_format($jumlah) . ' berhasil. Sisa hutang: Rp ' . number_format($pembelian->fresh()->sisaHutang()) . '.';
+            if ($dipasan) {
+                $pesan .= ' (Nominal melebihi sisa hutang — otomatis dipaskan/lunas.)';
+            }
+
+            return back()->with('success', $pesan);
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Gagal: ' . $e->getMessage());

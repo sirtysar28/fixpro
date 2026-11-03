@@ -616,6 +616,10 @@
             <a href="{{ route('aktivitas-sparepart.index') }}" class="{{ request()->routeIs('aktivitas-sparepart.*') ? 'active' : '' }}">
                 <i class="fas fa-exchange-alt"></i> Aktivitas Sparepart
             </a>
+            <div class="nav-label" style="margin-top: 8px;">Penjualan</div>
+            <a href="{{ route('penjualan-sparepart.index') }}" class="{{ request()->routeIs('penjualan-sparepart.*') ? 'active' : '' }}">
+                <i class="fas fa-cash-register"></i> Penjualan Sparepart (POS)
+            </a>
             <div class="nav-label" style="margin-top: 8px;">Penjualan Grosir</div>
             <a href="{{ route('grosir.dashboard') }}" class="{{ request()->routeIs('grosir.dashboard') ? 'active' : '' }}">
                 <i class="fas fa-th-large"></i> Dashboard Grosir
@@ -1206,6 +1210,9 @@
             <i class="fas fa-boxes"></i><span>Stok</span>
         </a>
         @elseif(auth()->user()->isAdminCabangAnak())
+        <a href="{{ route('penjualan-sparepart.index') }}" class="bottom-nav-item {{ request()->routeIs('penjualan-sparepart.*') ? 'active' : '' }}">
+            <i class="fas fa-credit-card"></i><span>Transaksi</span>
+        </a>
         <a href="{{ route('stok.index') }}" class="bottom-nav-item {{ request()->routeIs('stok.*','pembelian.*','aktivitas-sparepart.*') ? 'active' : '' }}">
             <i class="fas fa-boxes"></i><span>Stok</span>
         </a>

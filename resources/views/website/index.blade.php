@@ -491,6 +491,11 @@
         body.dark [style*="background:#f8fafc"] textarea{background:#0f172a!important;border-color:#334155!important;color:#e2e8f0!important}
         body.dark [style*="background:#f8fafc"] input::placeholder,
         body.dark [style*="background:#f8fafc"] textarea::placeholder{color:#64748b!important}
+        
+        /* Dark mode fix for inline styles in Download Desktop section */
+        body.dark #download-desktop p[style*="color: #64748b"] {
+            color: #94a3b8 !important;
+        }
     </style>
 </head>
 <body>
@@ -683,6 +688,41 @@
         </div>
     </div>
 </section>
+
+<!-- ========== DOWNLOAD DESKTOP APP ========== -->
+<section class="section section-gray" id="download-desktop">
+    <div class="container">
+        <div class="about-grid">
+            <div class="about-content animate-on-scroll">
+                <h2>Aplikasi Desktop FixPro untuk <span>Windows</span></h2>
+                <p>Rasakan pengalaman mengelola bisnis servis Anda lebih cepat dan stabil dengan aplikasi desktop FixPro. Tampilan yang lebih luas, fitur lengkap, dan terintegrasi penuh dengan sistem cloud Anda.</p>
+                <div class="about-checks">
+                    <div class="about-check"><i class="fas fa-check-circle"></i> Performa Lebih Cepat</div>
+                    <div class="about-check"><i class="fas fa-check-circle"></i> Tampilan & Menu Lebih Luas</div>
+                    <div class="about-check"><i class="fas fa-check-circle"></i> Data Tersinkron Otomatis</div>
+                    <div class="about-check"><i class="fas fa-check-circle"></i> Stabilitas Tinggi</div>
+                </div>
+                <div style="margin-top: 28px; display: flex; flex-direction: column; align-items: flex-start; gap: 12px;">
+                    <a href="https://www.fixpro.id/apps_old/Fixpro.exe" download class="btn-hero-primary" style="padding: 16px 40px; font-size: 1.05rem; box-shadow: 0 4px 20px rgba(13, 148, 136, 0.4);">
+                        <i class="fas fa-download"></i> Download Aplikasi Windows
+                    </a>
+                    <p style="font-size: 0.85rem; color: #64748b; margin: 0;">
+                        <i class="fas fa-circle-check" style="color: #22c55e; margin-right: 4px;"></i> Gratis Download 
+                        &nbsp;&middot;&nbsp; 
+                        <i class="fab fa-windows" style="margin-right: 4px;"></i> Support Windows 10/11 (64-bit)
+                    </p>
+                </div>
+            </div>
+            <div class="animate-on-scroll delay-2">
+                <div class="about-image" style="height: auto; box-shadow: 0 20px 60px rgba(0,0,0,.15); border-radius: 12px; border: 1px solid #e2e8f0;">
+                    <!-- Gambar Aplikasi Fixpro -->
+                    <img src="https://www.fixpro.id/apps_old/destop.png" alt="FixPro Windows App Interface" style="height: 100%; object-fit: cover;">
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- ========== DOWNLOAD DESKTOP APP END ========== -->
 
 <!-- ========== ABOUT ========== -->
 <section class="section" id="about">

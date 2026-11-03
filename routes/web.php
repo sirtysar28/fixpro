@@ -132,8 +132,8 @@ Route::middleware(['auth', 'active'])->group(function () {
     // Chat Bot Test (Admin)
     Route::post('/api/test-bot', [ChatController::class, 'testBot'])->name('chat.test-bot');
 
-    // ===== THERMAL PRINT (Admin, Staff & Super Admin) =====
-    Route::middleware('role:Admin,Staff,Super Admin')->group(function () {
+    // ===== THERMAL PRINT (Admin, Staff, Super Admin & Admin Cabang Anak) =====
+    Route::middleware('role:Admin,Staff,Super Admin,Admin Cabang Anak')->group(function () {
         Route::get('/print/servis/{servis}', [ThermalPrintController::class, 'servis'])->name('print.servis');
         Route::get('/print/penjualan-sparepart/{penjualan_sparepart}', [ThermalPrintController::class, 'penjualanSparepart'])->name('print.penjualan-sparepart');
         Route::get('/print/jual-beli/{jualBeli}', [ThermalPrintController::class, 'jualBeli'])->name('print.jual-beli');
@@ -192,6 +192,19 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('/aktivitas-sparepart/riwayat', [AktivitasSparepartController::class, 'riwayat'])->name('aktivitas-sparepart.riwayat');
         Route::get('/aktivitas-sparepart/{stok}', [AktivitasSparepartController::class, 'show'])->name('aktivitas-sparepart.show');
         Route::get('/aktivitas-sparepart/{stok}/export', [AktivitasSparepartController::class, 'export'])->name('aktivitas-sparepart.export');
+    });
+
+    // ===== POS PENJUALAN SPAREPART (Admin & Admin Cabang Anak) =====
+    // FIX: dipindah keluar dari group role:Admin agar anak cabang (mis. Sekawan5)
+    // bisa transaksi POS. Controller sudah mengunci data per cabang aktif user.
+    Route::middleware('role:Admin,Admin Cabang Anak')->group(function () {
+        Route::get('/penjualan-sparepart/api/products', [PenjualanSparepartController::class, 'getProducts'])->name('penjualan-sparepart.api.products');
+        Route::get('/penjualan-sparepart/api/search', [PenjualanSparepartController::class, 'searchProduct'])->name('penjualan-sparepart.api.search');
+        Route::get('/penjualan-sparepart/api/search-suggest', [PenjualanSparepartController::class, 'searchSuggest'])->name('penjualan-sparepart.api.search-suggest');
+        Route::post('/penjualan-sparepart/cart', [PenjualanSparepartController::class, 'storeCart'])->name('penjualan-sparepart.store-cart');
+        Route::post('/penjualan-sparepart/{penjualan_sparepart}/batal', [PenjualanSparepartController::class, 'batal'])->name('penjualan-sparepart.batal');
+        Route::post('/penjualan-sparepart/bulk-destroy', [PenjualanSparepartController::class, 'bulkDestroy'])->name('penjualan-sparepart.bulk-destroy');
+        Route::resource('penjualan-sparepart', PenjualanSparepartController::class)->parameter('penjualan-sparepart', 'penjualan_sparepart');
     });
 
     // Admin only routes
@@ -255,15 +268,6 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::post('/whatsapp/room/{room}/mark-read', [WhatsAppController::class, 'markRead'])->name('whatsapp.mark-read');
             Route::post('/whatsapp/room/{room}/archive', [WhatsAppController::class, 'archive'])->name('whatsapp.archive');
         });
-
-        // Penjualan Sparepart (POS)
-        Route::get('/penjualan-sparepart/api/products', [PenjualanSparepartController::class, 'getProducts'])->name('penjualan-sparepart.api.products');
-        Route::get('/penjualan-sparepart/api/search', [PenjualanSparepartController::class, 'searchProduct'])->name('penjualan-sparepart.api.search');
-        Route::get('/penjualan-sparepart/api/search-suggest', [PenjualanSparepartController::class, 'searchSuggest'])->name('penjualan-sparepart.api.search-suggest');
-        Route::post('/penjualan-sparepart/cart', [PenjualanSparepartController::class, 'storeCart'])->name('penjualan-sparepart.store-cart');
-        Route::post('/penjualan-sparepart/{penjualan_sparepart}/batal', [PenjualanSparepartController::class, 'batal'])->name('penjualan-sparepart.batal');
-        Route::post('/penjualan-sparepart/bulk-destroy', [PenjualanSparepartController::class, 'bulkDestroy'])->name('penjualan-sparepart.bulk-destroy');
-        Route::resource('penjualan-sparepart', PenjualanSparepartController::class)->parameter('penjualan-sparepart', 'penjualan_sparepart');
 
         // Tagihan Sparepart (Invoicing to other stores)
         Route::get('/tagihan-sparepart', [TagihanSparepartController::class, 'index'])->name('tagihan-sparepart.index');

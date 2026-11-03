@@ -49,9 +49,15 @@ class StokController extends Controller
 
     private function requireCabangForStok(Request $request)
     {
-        $cabangId = auth()->user()->getActiveCabangId();
+        $user = auth()->user();
+        $cabangId = $user->getActiveCabangId();
         if ($cabangId === null) {
-            return view('stok.pilih-cabang', ['redirectTo' => $request->fullUrl()]);
+            // Null yang DISNEGAJA (super admin mode "semua cabang") → minta pilih cabang dulu
+            if ($user->isSuperAdmin() && session('cabang_id') === 'all') {
+                return view('stok.pilih-cabang', ['redirectTo' => $request->fullUrl()]);
+            }
+            // Akun rusak (cabang_id NULL): jangan blokir mutasi — biarkan fallback controller
+            // (getEffectiveCabangId) menentukan cabang, agar data tidak tersimpan ke cabang 0.
         }
         return null;
     }
@@ -80,7 +86,6 @@ class StokController extends Controller
         }
 
         // ===== 2. Query Utama dengan Filter Cabang yang AMAN & KETAT =====
-        // PERBAIKAN: Menambahkan orWhereNull untuk kompatibilitas data lama (cabang_id NULL = cabang utama/ID 1)
         $query = Stok::where(function ($q) use ($filterCabang) {
             $q->where('cabang_id', $filterCabang);
             if ((int) $filterCabang === 1) {
@@ -89,7 +94,6 @@ class StokController extends Controller
         });
 
         // ===== 3. Filter kata pencarian =====
-        // Closure ini memastikan pencarian HANYA berlaku di dalam cabang yang sudah difilter di atas
         if ($request->filled('search')) {
             $s = $request->search;
             $query->where(function ($q) use ($s) {
@@ -116,7 +120,7 @@ class StokController extends Controller
         if (!in_array($sort, $sortable)) $sort = 'nama';
         $query->orderBy($sort, $dir)->orderBy('nama', 'asc');
 
-        // ===== 6. Pagination =====
+        // ===== 6. Pagination Tabel Utama =====
         $perPage = (int) $request->input('per_page', 20);
         if (!in_array($perPage, [10, 20, 50, 100])) $perPage = 20;
 
@@ -124,7 +128,7 @@ class StokController extends Controller
 
         session(['stok.index_url' => $request->fullUrl()]);
 
-        // ===== 7. Stats & Dropdown (Harus menggunakan logika cabang yang SAMA PERSIS) =====
+        // ===== 7. Stats & Dropdown (Menggunakan logika cabang yang SAMA PERSIS) =====
         $statsBaseQuery = Stok::where(function ($q) use ($filterCabang) {
             $q->where('cabang_id', $filterCabang);
             if ((int) $filterCabang === 1) {
@@ -133,18 +137,23 @@ class StokController extends Controller
         });
 
         $totalJenis = (clone $statsBaseQuery)->count();
-        // PERBAIKAN: Gunakan whereColumn untuk membandingkan 2 kolom secara aman (mencegah SQL injection)
         $stokLow = (clone $statsBaseQuery)->where('stok', '>', 0)->whereColumn('stok', '<=', 'min_alert')->count();
         $stokHabis = (clone $statsBaseQuery)->where('stok', 0)->count();
 
-        // Dropdown filter juga dibatasi per cabang agar tidak menampilkan kategori/merk yang tidak ada di cabang ini
         $kategoriList = (clone $statsBaseQuery)->distinct()->orderBy('kategori')->pluck('kategori');
         $merkList = (clone $statsBaseQuery)->whereNotNull('merk_hp')->where('merk_hp', '!=', '')->distinct()->orderBy('merk_hp')->pluck('merk_hp');
+
+        // ===== 8. Rincian Stok Habis (TERPISAH, 50 per halaman) =====
+        // Menggunakan parameter 'page_habis' agar URL pagination tidak bentrok dengan tabel utama (?page=2)
+        $stokHabisGlobal = (clone $statsBaseQuery)
+            ->where('stok', 0)
+            ->orderBy('nama', 'asc')
+            ->paginate(50, ['*'], 'page_habis');
 
         return view('stok.index', compact(
             'stoks', 'totalJenis', 'stokLow', 'stokHabis', 
             'allowedCabangs', 'filterCabang', 'kategoriList', 'merkList', 
-            'sort', 'dir', 'perPage'
+            'sort', 'dir', 'perPage', 'stokHabisGlobal' // <-- Variabel baru ditambahkan di sini
         ));
     }
 
@@ -370,7 +379,6 @@ class StokController extends Controller
     public function exportExcel()
     {
         $cabangId = auth()->user()->getActiveCabangId();
-        // PERBAIKAN: Tambahkan kompatibilitas data lama (cabang_id NULL) agar tidak terlewat saat export
         $stoks = Stok::where(function ($q) use ($cabangId) {
             $q->where('cabang_id', $cabangId);
             if ((int) $cabangId === 1) {
@@ -462,7 +470,6 @@ class StokController extends Controller
                 }
                 $seen[$key] = $i + 1;
 
-                // PERBAIKAN: Tambahkan kompatibilitas data lama (cabang_id NULL) saat mencari data existing
                 $existing = Stok::where('kode', $kode)
                     ->where(function ($q) use ($cabangId) {
                         $q->where('cabang_id', $cabangId);

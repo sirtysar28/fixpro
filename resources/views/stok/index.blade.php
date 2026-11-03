@@ -210,22 +210,21 @@
 </div>
 
 {{-- ========================================== --}}
-{{-- TAMBAHAN: Rincian Stok Habis di Bagian Bawah --}}
+{{-- RINCIAN STOK HABIS (TERPISAH, 50 PER HALAMAN) --}}
 {{-- ========================================== --}}
 @php
-    // Mengambil daftar stok habis. 
-    // Prioritas 1: variabel $stokHabisItems dari controller (menampilkan semua data di seluruh halaman).
-    // Prioritas 2 (Fallback): filter dari $stoks halaman aktif (jika controller belum diupdate).
-    $daftarStokHabis = isset($stokHabisItems) && $stokHabisItems->isNotEmpty() 
-        ? $stokHabisItems 
-        : (isset($stoks) ? $stoks->where('stok', 0) : collect());
+    // Mengambil data dari variabel $stokHabisGlobal yang dikirim controller.
+    // Data ini INDEPENDEN, jadi TIDAK akan berubah saat Anda mengganti halaman tabel utama.
+    $daftarStokHabis = isset($stokHabisGlobal) && $stokHabisGlobal->isNotEmpty() 
+        ? $stokHabisGlobal 
+        : collect();
 @endphp
 
 @if($daftarStokHabis->isNotEmpty())
 <div class="card mt-6" style="border-top: 4px solid var(--danger, #dc2626);">
     <div style="background:#fee2e2; color:#991b1b; font-weight:700; padding:12px 16px; border-radius:8px 8px 0 0; display:flex; align-items:center; gap:8px;">
         <i class="fas fa-exclamation-circle"></i> 
-        <span>Rincian Stok Habis ({{ $daftarStokHabis->count() }} item)</span>
+        <span>Rincian Stok Habis (Menampilkan 50 item per halaman)</span>
     </div>
     <div class="table-wrap">
         <table class="table-cards">
@@ -257,6 +256,13 @@
             </tbody>
         </table>
     </div>
+    
+    {{-- Pagination khusus untuk daftar stok habis (menggunakan parameter 'page_habis' agar tidak bentrok) --}}
+    @if($daftarStokHabis instanceof \Illuminate\Pagination\LengthAwarePaginator)
+    <div style="padding: 12px 16px; border-top: 1px solid #e2e8f0;">
+        {{ $daftarStokHabis->appends(request()->except('page_habis'))->links() }}
+    </div>
+    @endif
 </div>
 @endif
 
@@ -273,7 +279,6 @@ function showBarcodePopup(id, barcode, nama, kode, jual, stok, satuan, kategori,
     document.getElementById('bpStok').textContent = stok + ' ' + satuan;
     document.getElementById('bpBarcodeText').textContent = barcode;
 
-    // Render barcode
     try {
         JsBarcode('#bpBarcode', barcode, {
             format: 'CODE128', width: 2, height: 60,
@@ -333,7 +338,6 @@ function printSingleBarcodeFromPopup() {
     win.document.close();
 }
 
-// Close on ESC
 document.addEventListener('keydown', e => { if(e.key === 'Escape') closeBarcodePopup(); });
 
 function quickStok(id, delta) {

@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('stok_id')->constrained('stoks')->cascadeOnDelete();
             $table->foreignId('pelanggan_id')->nullable()->constrained()->nullOnDelete();
-            $table->foreignId('cabang_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('cabang_id')->nullable()->constrained('cabang')->nullOnDelete();
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
             $table->string('kode')->unique();
             $table->integer('qty');

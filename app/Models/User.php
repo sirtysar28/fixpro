@@ -254,7 +254,8 @@ class User extends Authenticatable
             // FIX: fallback ke cabang pusat grup SENDIRI, bukan cabang 1 (milik toko lain)
             return $this->getDefaultCabangId() ?? 1;
         }
-        return (int) ($this->cabang_id ?? 1);
+        // FIX: user biasa tanpa cabang_id → null, JANGAN dilempar ke cabang 1 (milik toko lain)
+        return $this->cabang_id !== null ? (int) $this->cabang_id : null;
     }
 
     /**
@@ -303,7 +304,8 @@ class User extends Authenticatable
         }
 
         // Non-enterprise: always locked to their own branch
-        return (int) ($this->cabang_id ?? 1);
+        // FIX: cabang_id NULL → null (bukan cabang 1 milik toko lain)
+        return $this->cabang_id !== null ? (int) $this->cabang_id : null;
     }
 
     /**

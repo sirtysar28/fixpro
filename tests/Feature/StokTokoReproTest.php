@@ -141,7 +141,7 @@ class StokTokoReproTest extends TestCase
             'stok' => 1, 'cabang_id' => $user->cabang_id,
         ]);
 
-        $response = $this->from(route('stok.create'))->post(route('stok.store'), $this->formData(['kode' => 'LCD-DUP']));
+        $response = $this->from(route('stok.create'))->post(route('stok.store'), $this->formData(['kode' => 'LCD-DUP', 'nama' => 'Lama']));
 
         $response->assertRedirect(route('stok.create'));
         $response->assertSessionHasErrors('kode');

@@ -5,7 +5,7 @@
     <title>Struk Servis {{ $servis->kode }}</title>
 
     <style>
-        /* ⚠️ PERBAIKAN 1: Hapus 'auto' height, gunakan tinggi tetap */
+        /* Ukuran kertas thermal 58mm, tanpa margin printer */
         @page {
             size: 58mm 200mm;
             margin: 0;
@@ -22,14 +22,15 @@
             font-family: 'Courier New', Courier, monospace;
             color: #000;
             background: #fff;
+            width: 58mm;          /* samakan dengan lebar kertas */
             -webkit-font-smoothing: antialiased;
         }
 
-        /* ⚠️ PERBAIKAN 2: Tambahkan page-break-inside: avoid */
+        /* ✅ FIX UTAMA: lebar penuh kertas + padding horizontal supaya tidak menabrak tepi */
         .receipt {
-            width: 48mm;
-            margin: 0 auto;
-            padding: 3.5mm 0 4mm 0;
+            width: 58mm;          /* penuh sesuai kertas */
+            margin: 0;             /* hapus centering */
+            padding: 3mm 1.7mm 4mm 1.7mm; /* atas kanan bawah kiri */
             font-size: 8.5px;
             line-height: 1.4;
             position: relative;
@@ -51,6 +52,7 @@
             margin-bottom: 0.4mm;
             letter-spacing: 0.5px;
             color: #111;
+            word-break: break-word;   /* cegah potong jika alamat panjang */
         }
 
         /* ===== DIVIDERS ===== */
@@ -87,16 +89,18 @@
             width: 100%;
             border-collapse: collapse;
             margin: 0;
+            table-layout: fixed;   /* stabilkan lebar kolom */
         }
 
         td {
             padding: 0.5mm 0;
             vertical-align: top;
+            word-break: break-word;
         }
 
         .col-label {
             text-align: left;
-            width: 19mm;
+            width: 20mm;
             font-weight: normal;
             white-space: nowrap;
         }
@@ -104,6 +108,7 @@
         .col-value {
             text-align: left;
             font-weight: bold;
+            word-break: break-word;
         }
 
         .col-value.light {
@@ -129,7 +134,7 @@
             letter-spacing: 2px;
         }
 
-        /* ⚠️ PERBAIKAN 3: Cegah page-break di dalam tabel dan section penting */
+        /* Cegah page-break di elemen penting */
         table,
         .section-title,
         .footer-thanks,
@@ -138,24 +143,15 @@
         }
 
         @media print {
-            @page {
-                size: 58mm 200mm;
-                margin: 0;
-            }
-
-            body {
+            html, body {
+                width: 58mm;
                 margin: 0;
                 padding: 0;
             }
-
-            /* ⚠️ PERBAIKAN 4: Sembunyikan elemen non-print jika ada */
-            .no-print {
-                display: none !important;
-            }
+            .no-print { display: none !important; }
         }
     </style>
 </head>
-
 <body>
 
 @php
@@ -262,34 +258,16 @@
 </div>
 
 <script>
-    /*
-     * AUTO PRINT - Versi Aman Anti-Dobel
-     */
     (function () {
-        // Cek apakah sudah pernah diprint di sesi ini
         if (sessionStorage.getItem('struk_printed_' + '{{ $servis->kode }}')) {
             return;
         }
-
         let printTriggered = false;
-
         window.addEventListener('load', function () {
             if (printTriggered) return;
             printTriggered = true;
-
-            // Tandai sudah diprint
             sessionStorage.setItem('struk_printed_' + '{{ $servis->kode }}', '1');
-
-            setTimeout(function () {
-                window.print();
-            }, 500); // Delay lebih lama untuk memastikan render selesai
-        });
-
-        // Cegah print ganda via keyboard shortcut
-        window.addEventListener('beforeprint', function () {
-            if (printTriggered) {
-                // Biarkan print kedua jika user manual trigger
-            }
+            setTimeout(function () { window.print(); }, 500);
         });
     })();
 </script>

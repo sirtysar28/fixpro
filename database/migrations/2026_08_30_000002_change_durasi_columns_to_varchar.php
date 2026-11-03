@@ -17,6 +17,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // MODIFY hanya untuk MySQL — SQLite (testing) tidak punya ENUM, kolom sudah fleksibel
+        if (DB::getDriverName() === 'sqlite') {
+            return;
+        }
         foreach (['activation_requests', 'activation_codes'] as $tbl) {
             if (!Schema::hasTable($tbl) || !Schema::hasColumn($tbl, 'durasi')) {
                 continue;
@@ -27,6 +31,9 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (DB::getDriverName() === 'sqlite') {
+            return;
+        }
         foreach (['activation_requests', 'activation_codes'] as $tbl) {
             if (!Schema::hasTable($tbl) || !Schema::hasColumn($tbl, 'durasi')) {
                 continue;

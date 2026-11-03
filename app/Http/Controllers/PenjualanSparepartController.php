@@ -393,7 +393,7 @@ class PenjualanSparepartController extends Controller
                     'modal_total' => $modalTotal,
                     'diskon' => ($idx === 0) ? $diskon : 0,
                     'metode_bayar' => $validated['metode_bayar'],
-                    'catatan' => $validated['catatan'],
+                    'catatan' => $validated['catatan'] ?? null,
                     'tanggal' => now()->format('Y-m-d'),
                 ]);
 
@@ -541,7 +541,7 @@ class PenjualanSparepartController extends Controller
                 'total' => $total,
                 'modal_total' => $modalTotal,
                 'metode_bayar' => $validated['metode_bayar'],
-                'catatan' => $validated['catatan'],
+                'catatan' => $validated['catatan'] ?? null,
                 'tanggal' => now()->format('Y-m-d'),
             ]);
 

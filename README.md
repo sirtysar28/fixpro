@@ -1,60 +1,231 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# FIXPRO — Aplikasi Manajemen Service HP
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+<div align="center">
 
-## About Laravel
+**fixpro.id** — Platform manajemen toko service HP terintegrasi: servis, sparepart, grosir, multi-cabang, pembayaran, WhatsApp, dan aplikasi Android.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+</div>
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+---
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## 📋 Tentang FIXPRO
 
-## Learning Laravel
+FIXPRO adalah aplikasi berbasis web (SaaS) untuk mengelola usaha service HP yang terdiri dari **dashboard admin berbasis web** dan **API untuk aplikasi Android**. Aplikasi ini membantu teknisi, admin, dan pemilik toko dalam mengelola tiket servis, stok sparepart, penjualan grosir, keuangan, hingga komunikasi dengan pelanggan via WhatsApp — semuanya dalam satu platform.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+---
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## ✨ Fitur Utama
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+### 🌐 Website Publik (fixpro.id)
+- Landing page dinamis yang dapat dikelola via **Website Management** (CMS internal)
+- **Lacak Servis** — pelanggan dapat melacak status perbaikan HP dengan kode servis
+- Halaman **Download APK** untuk aplikasi Android
+- Banner iklan & promo card
 
-## Agentic Development
+### 🔧 Manajemen Servis HP
+- Tiket servis lengkap: data pelanggan, tipe HP, kerusakan, teknisi, estimasi biaya
+- Alur status servis (diterima → dikerjakan → selesai → diambil / batal)
+- Nota servis **PDF** (DomPDF) & cetak **thermal print** (struk 58/80mm)
+- Kirim nota & notifikasi ke pelanggan via **WhatsApp**
+- Arsip servis riwayat
+- **My Service** — pelanggan mendaftar & memantau servisnya sendiri
+- **Dashboard Teknisi** — teknisi melihat & mengelola pekerjaan yang ditugaskan
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+### 📦 Stok & Sparepart
+- Manajemen stok sparepart dengan notifikasi stok menipis
+- **Kartu Stok** (aktivitas sparepart) — riwayat masuk/keluar barang
+- **POS Penjualan Sparepart** — transaksi kasir cepat + struk thermal
+- **Pembelian** sparepart ke supplier + pembayaran
+- **Invoice & Tagihan Sparepart** untuk penjualan tempo
+- **Serial Number tracking** per unit sparepart
+- **Transfer Stok** antar cabang (paket Enterprise)
+- Cetak **barcode** produk
 
-```bash
-composer require laravel/boost --dev
+### 🏬 Modul Grosir
+- Stok grosir terpisah dari stok ritel
+- **Harga Grosir** bertingkat + harga khusus per pelanggan
+- Penjualan grosir, pesanan (order), dan retur
+- Manajemen **piutang grosir** + pembayaran
+- Laporan grosir lengkap
 
-php artisan boost:install
+### 💰 Keuangan
+- Manajemen **Kas** (kas masuk / kas keluar)
+- **Laporan Keuangan** — laba/rugi, arus kas, rekap transaksi
+- **Laporan Servis & Penjualan** dengan filter periode
+- Export laporan ke Excel (XLSX)
+
+### 🏢 Multi Cabang
+- Cabang pusat & **cabang anak** dengan aktivasi terpusat
+- Switch cabang untuk Admin Cabang Anak
+- Laporan terpisah per cabang
+
+### 💳 Langganan & Lisensi (SaaS)
+- **Paket Berlangganan**:
+  | Paket | Durasi | Cabang |
+  |---|---|---|
+  | Standar | 3 bulan | 1 cabang (toko kecil) |
+  | Enterprise | 3 bulan | 1 pusat + maks 3 cabang anak + transfer stok |
+- **Serial Number / Kode Aktivasi** — lisensi per pengguna, redeem via profil
+- **Activation Request** — permintaan aktivasi dari cabang anak
+- Integrasi **Payment Gateway** dengan webhook otomatis
+
+### 📱 Aplikasi Android (REST API)
+- API lengkap berbasis **Laravel Sanctum** (token auth)
+- Sinkronisasi data servis, stok, kas, jual-beli, pelanggan, teknisi
+- **Offline Sync** — transaksi offline tersinkron otomatis saat online (dengan penanganan konflik)
+- Download APK langsung dari website
+
+### 💬 Komunikasi
+- **Integrasi WhatsApp** — notifikasi otomatis + webhook
+- **Chat internal** antar pengguna + chatbot (bot assistant)
+- Chat admin ↔ pelanggan
+
+### ⚙️ Administrasi Sistem
+- **Multi Role**: Super Admin, Admin, Staff, User, Teknisi, Admin Cabang Anak
+- **User Management** — CRUD pengguna & kontrol role
+- **Audit Log** — jejak semua aktivitas penting (khusus Super Admin)
+- **Multi Bahasa** — dukungan beberapa bahasa + manajemen terjemahan
+- **Login Google OAuth 2.0**
+- Manajemen rekening **Bank**
+- Pengaturan toko (logo, nama, alamat, dll)
+
+---
+
+## 🛠 Teknologi
+
+| Komponen | Teknologi |
+|---|---|
+| Backend | **Laravel 11** (PHP ≥ 8.2) |
+| Frontend | **Tailwind CSS**, **Alpine.js**, **Vite** |
+| API Mobile | **Laravel Sanctum** |
+| PDF | **DomPDF** |
+| Database | MySQL / MariaDB (via `.env`) |
+| Testing | **PHPUnit** |
+
+---
+
+## 📁 Struktur Direktori (Ringkas)
+
+```
+Fixpro-new/
+├── app/
+│   ├── Http/Controllers/     # Controller web (Servis, Stok, Grosir, Kas, dll)
+│   │   └── Api/              # Controller API untuk aplikasi Android
+│   ├── Models/               # Eloquent Models (50+ model)
+│   ├── Services/             # Logika bisnis (Payment, WhatsApp, Sync, Audit, dll)
+│   ├── Helpers/              # Helper function global
+│   └── Middleware/           # Role check, status aktif, dll
+├── database/
+│   ├── migrations/           # Skema database
+│   └── seeders/              # Data awal
+├── resources/views/          # Blade templates (per modul)
+├── routes/
+│   ├── web.php               # Route aplikasi web
+│   ├── api.php               # Route API (prefix /api)
+│   └── auth.php              # Route autentikasi
+├── config/                   # Konfigurasi aplikasi
+└── public/                   # Document root & aset
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+---
 
-## Contributing
+## 🚀 Instalasi (Development)
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### Prasyarat
+- PHP ≥ 8.2 (dengan ekstensi: `pdo`, `mbstring`, `gd`, `zip`, dll)
+- Composer
+- Node.js & NPM
+- MySQL / MariaDB
 
-## Code of Conduct
+### Langkah Instalasi
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+# 1. Clone / salin project
+cd Fixpro-new
 
-## Security Vulnerabilities
+# 2. Install dependency PHP
+composer install
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+# 3. Install dependency frontend
+npm install
 
-## License
+# 4. Salin file environment
+cp .env.example .env
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
-# fixpro
-# fixpro
+# 5. Generate application key
+php artisan key:generate
+
+# 6. Konfigurasi database di file .env
+#    DB_CONNECTION=mysql
+#    DB_HOST=127.0.0.1
+#    DB_DATABASE=fixpro
+#    DB_USERNAME=...
+#    DB_PASSWORD=...
+
+# 7. Jalankan migrasi & seeder
+php artisan migrate --seed
+
+# 8. Build aset frontend (mode production)
+npm run build
+# atau mode development:
+npm run dev
+
+# 9. Jalankan server development
+php artisan serve
+```
+
+Aplikasi web dapat diakses di `http://localhost:8000`.
+
+> **Catatan:** Hak akses & kredensial login bersifat privat dan hanya dikelola oleh pemilik aplikasi melalui panel internal. Informasi akun tidak didistribusikan di dokumen ini.
+
+---
+
+## 🔌 API Aplikasi Android
+
+Endpoint API berada di prefix `/api` dengan autentikasi token **Sanctum**. Cakupan API:
+
+- Autentikasi (login/register/logout via token, redeem serial)
+- Dashboard & statistik
+- CRUD Servis + quick status + arsip
+- My Service (pelanggan)
+- CRUD Stok, Kas, Jual-Beli, Pelanggan, Teknisi, Tipe HP
+- Penjualan sparepart & laporan keuangan (export)
+- Banner, settings, cabang
+- User management & audit log (Super Admin)
+- **Offline Sync** (`/api/offline/sync`)
+
+Detail endpoint dapat dilihat di `routes/api.php`.
+
+---
+
+## 🧪 Menjalankan Test
+
+```bash
+php artisan test
+```
+
+---
+
+## 🌍 Deploy ke Produksi
+
+1. Arahkan document root server ke folder `public/`
+2. `composer install --optimize-autoloader --no-dev`
+3. `npm run build`
+4. Konfigurasi `.env` produksi (`APP_ENV=production`, `APP_DEBUG=false`)
+5. `php artisan migrate --force`
+6. Optimasi:
+   ```bash
+   php artisan config:cache
+   php artisan route:cache
+   php artisan view:cache
+   ```
+7. Pastikan folder `storage/` dan `bootstrap/cache` dapat ditulis server
+8. Setup webhook Payment Gateway & WhatsApp ke endpoint publik:
+   - `POST /payment/webhook`
+   - `POST /whatsapp/webhook`
+
+---
+
+## 📄 Lisensi
+
+Aplikasi internal **FIXPRO (fixpro.id)**. Seluruh hak cipta dilindungi.

@@ -240,7 +240,8 @@ class User extends Authenticatable
             if ($session === 'all') {
                 return null; // null = all branches (dashboard only)
             }
-            return (int) ($session ?? $this->cabang_id ?? 1);
+            // FIX 1452: session bisa berisi cabang yang sudah dihapus → validasi dulu
+            return $this->existingCabangIdOrFirst((int) ($session ?? $this->cabang_id ?? 1));
         }
         // Enterprise admin: allow switching to child branches via session
         if ($this->isEnterprise() && $this->isAdmin()) {
@@ -252,10 +253,29 @@ class User extends Authenticatable
                 }
             }
             // FIX: fallback ke cabang pusat grup SENDIRI, bukan cabang 1 (milik toko lain)
-            return $this->getDefaultCabangId() ?? 1;
+            return $this->existingCabangIdOrFirst($this->getDefaultCabangId());
         }
         // FIX: user biasa tanpa cabang_id → null, JANGAN dilempar ke cabang 1 (milik toko lain)
-        return $this->cabang_id !== null ? (int) $this->cabang_id : null;
+        // FIX 1452: validasi juga cabang_id sendiri (bisa yatim di DB tanpa FK)
+        return ($this->cabang_id !== null && \App\Models\Cabang::whereKey((int) $this->cabang_id)->exists())
+            ? (int) $this->cabang_id
+            : null;
+    }
+
+    /**
+     * FIX FK 1452: pastikan id cabang benar-benar ADA di tabel cabang sebelum
+     * dipakai untuk insert/update. Fallback lama `?? 1` berbahaya karena cabang
+     * id 1 bisa sudah dihapus di server → id mati masuk ke transaksi
+     * (contoh: insert sparepart_movements gagal SQLSTATE[23000] 1452).
+     * Return id valid, atau cabang pertama yang ada, atau null bila tabel kosong.
+     */
+    private function existingCabangIdOrFirst(?int $preferred): ?int
+    {
+        if ($preferred !== null && \App\Models\Cabang::whereKey($preferred)->exists()) {
+            return $preferred;
+        }
+        $first = \App\Models\Cabang::orderBy('id')->value('id');
+        return $first !== null ? (int) $first : null;
     }
 
     /**
@@ -272,7 +292,8 @@ class User extends Authenticatable
                 if ($param === 'all') {
                     return null; // null = all branches
                 }
-                return (int) $param;
+                // FIX 1452: param dari mobile bisa berisi cabang yang sudah dihapus
+                return $this->existingCabangIdOrFirst((int) $param);
             }
             // 2. Fallback to session (web)
             $session = session('cabang_id');
@@ -280,10 +301,10 @@ class User extends Authenticatable
                 if ($session === 'all') {
                     return null;
                 }
-                return (int) $session;
+                return $this->existingCabangIdOrFirst((int) $session);
             }
             // 3. Default to user's own branch
-            return (int) ($this->cabang_id ?? 1);
+            return $this->existingCabangIdOrFirst((int) ($this->cabang_id ?? 1));
         }
 
         // Enterprise admin: allow switching via query param or session
@@ -300,12 +321,15 @@ class User extends Authenticatable
                 return (int) $session;
             }
             // 3. FIX: fallback ke cabang pusat grup sendiri (bukan cabang 1 milik toko lain)
-            return $this->getDefaultCabangId() ?? 1;
+            return $this->existingCabangIdOrFirst($this->getDefaultCabangId());
         }
 
         // Non-enterprise: always locked to their own branch
         // FIX: cabang_id NULL → null (bukan cabang 1 milik toko lain)
-        return $this->cabang_id !== null ? (int) $this->cabang_id : null;
+        // FIX 1452: validasi eksistensi cabang (antisipasi id yatim di DB tanpa FK)
+        return ($this->cabang_id !== null && \App\Models\Cabang::whereKey((int) $this->cabang_id)->exists())
+            ? (int) $this->cabang_id
+            : null;
     }
 
     /**
@@ -315,7 +339,14 @@ class User extends Authenticatable
     public function getEffectiveCabangId(): int
     {
         $id = $this->getActiveCabangId();
-        return $id ?? (int) ($this->cabang_id ?? 1);
+        if ($id !== null && \App\Models\Cabang::whereKey($id)->exists()) {
+            return $id;
+        }
+        // FIX 1452: jangan asal fallback ke id 1 (bisa sudah dihapus) —
+        // pakai cabang pertama yang benar-benar ada.
+        return $this->existingCabangIdOrFirst(
+            $this->cabang_id !== null ? (int) $this->cabang_id : null
+        ) ?? 1;
     }
 
     /**
